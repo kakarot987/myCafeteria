@@ -1,0 +1,330 @@
+<!--Header-->
+<header class="clearfix">
+    <div class="container">
+      <!--Hot Drinks Menu-->
+    <section class="card-containerVeg lfloat drinks">
+      <diV class="logo clearfix">
+        <img src="assets/Images/hot.png">
+        <h2 class="lfloat">Hot</h2>
+      </diV>
+      <div class="cardDemo clearfix">
+        <div class="lfloat">
+          <h3>Coffee</h3>    
+          <h6 class="lfloat">50₹</h6>
+        </div>
+        <img class="drinkImg" src="assets/Images/coffee.jpg">
+        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+        <div *ngIf = "role != 'ROLE_ADMIN'">
+          <select class="lfloat">
+            <option value="0">Mode of Payment</option>
+            <option value="1">Cash On Delivery</option>
+            <option value="2">Paytm / Google Pay</option>
+          </select>    
+          <button class="rfloat" (click)="addOrder('Coffee','NA')">Add</button>  
+        </div>
+        </div>
+      </div>
+      <div class="cardDemo clearfix">
+        <div class="lfloat">
+          <h3>Tea</h3>    
+          <h6 class="lfloat">20₹</h6>
+        </div>
+        <img class="drinkImg" src="assets/Images/tea.jpg">
+        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+        <div *ngIf = "role != 'ROLE_ADMIN'">
+          <select class="lfloat">
+            <option value="0">Mode of Payment</option>
+            <option value="1">Cash On Delivery</option>
+            <option value="2">Paytm / Google Pay</option>
+          </select>    
+          <button class="rfloat" (click)="addOrder('Tea','NA')">Add</button>  
+        </div>
+        </div>
+      </div>
+    </section>
+    <!--Cold Drinks Menu-->
+    <section class="card-containerVeg rfloat drinks">
+      <diV class="logo clearfix">
+        <img src="assets/Images/cold.png">
+        <h2 class="lfloat">Cold</h2>
+      </diV>
+      <div class="cardDemo clearfix">
+        <div class="lfloat">
+          <h3>Cold Drinks</h3>    
+          <h6 class="lfloat">50₹</h6>
+        </div>
+        <img class="drinkImg" src="assets/Images/softdrink.jpg">
+        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+        <div *ngIf = "role != 'ROLE_ADMIN'">
+          <select class="lfloat">
+            <option value="0">Mode of Payment</option>
+            <option value="1">Cash On Delivery</option>
+            <option value="2">Paytm / Google Pay</option>
+          </select>    
+          <button class="rfloat" (click)="addOrder('Cold Drinks','NA')">Add</button>  
+        </div>
+        </div>
+      </div>
+      <div class="cardDemo clearfix">
+        <div class="lfloat">
+          <h3>Lemonade</h3>    
+          <h6 class="lfloat">60₹</h6>
+        </div>
+        <img class="drinkImg" src="assets/Images/lemonade.jpg">
+        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+        <div *ngIf = "role != 'ROLE_ADMIN'">
+          <select class="lfloat">
+            <option value="0">Mode of Payment</option>
+            <option value="1">Cash On Delivery</option>
+            <option value="2">Paytm / Google Pay</option>
+          </select>    
+          <button class="rfloat" (click)="addOrder('Lemonade','NA')">Add</button>  
+        </div>
+        </div>
+      </div>
+    </section>
+    <!--Icon and Order Screen-->
+    <div class="title">
+      <h1>myCafeteria</h1>
+      <div *ngIf = "isLoggedIn == true">
+        <div *ngIf = "role != 'ROLE_ADMIN'">
+        <h2>Your Orders</h2>
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>Pick Up In:</th>
+          </tr>
+          <tr *ngFor = "let f of orderList">
+            <td>{{f.name}}</td>
+            <td>{{f.time}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    </div>
+  </div>
+</header>
+
+<!--Main Body-->
+  <div class="container clearfix">
+    <!--FoodMenu Section-->
+  <section class="card-container clearfix lfloat">
+    <!--Section for Veg Food-->
+    <section class="card-containerVeg">
+      <div class="clearfix headling">
+        <img src="assets/Images/veg.png">
+        <h2>Veg</h2>
+      </div>
+      <div *ngFor="let file of foodInfo | async">
+        <div *ngIf="file.category == 'veg'" class="cardDemo clearfix">
+          <div class="lfloat">
+            <h3>{{file.foodname}}</h3>    
+            <h6 class="lfloat">{{file.rates}}₹</h6>
+          </div>
+          <img src="http://localhost:8080/api/auth/getFood/{{file.id}}">
+          <p>{{file.description}}</p>
+          <h6 class="rfloat">{{file.time}}</h6>
+          <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+            <div *ngIf = "role != 'ROLE_ADMIN'">
+              <select class="lfloat">
+                <option value="0">Mode of Payment</option>
+                <option value="1">Cash On Delivery</option>
+                <option value="2">Paytm / Google Pay</option>
+              </select>    
+              <button class="rfloat" (click)="addOrder(file.foodname,file.time)">Add</button>  
+            </div>
+          </div>
+        </div>
+      </div> 
+    </section>
+        <!--Section for Non-Veg Food-->
+    <section class="card-containerNonVeg">
+      <diV class="clearfix headling">
+        <img src="assets/Images/nv.png">     
+        <h2>Non-Veg</h2>
+      </diV>
+      <div *ngFor="let file of foodInfo | async">
+        <div *ngIf="file.category == 'nonveg'" class="cardDemo clearfix">
+          <div class="lfloat">
+            <h3>{{file.foodname}}</h3>    
+            <h6 class="lfloat">{{file.rates}}₹</h6>
+          </div>
+          <img src="http://localhost:8080/api/auth/getFood/{{file.id}}">
+          <p>{{file.description}}</p>
+          <h6 class="rfloat">{{file.time}}</h6>
+          <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
+            <div *ngIf = "role != 'ROLE_ADMIN'">
+              <select class="lfloat">
+                <option value="0">Mode of Payment</option>
+                <option value="1">Cash On Delivery</option>
+                <option value="2">Paytm / Google Pay</option>
+              </select>    
+              <button class="rfloat" (click)="addOrder(file.foodname,file.time)">Add</button>  
+            </div> 
+          </div>
+        </div>
+      </div> 
+    </section>
+
+  </section>
+  <!--Login Section-->
+  <section class="login rfloat">
+    <!--Login Form-->
+    <div *ngIf = "isLoggedIn == false">
+      <img src="assets/Images/1.png">
+      <form class="row g-3" name = "form" (ngSubmit)="onSubmit()">
+        <div class="col-md-12">
+          <label for="validationName" class="form-label">Username</label>
+                    <input type="text" class="form-control" name="username" [(ngModel)]="form.username" placeholder="Enter Name">
+                    <label class="invalidError" id="error"></label>	
+        </div>
+        <div class="col-md-12">
+          <label for="validationName" class="form-label">Password</label>
+          <input type="text" name ="password" class="form-control" [(ngModel)]="form.password" placeholder="Enter Name">
+          <label class="invalidError" id="error"></label>	
+        </div>
+        <div class="col-md-12">
+          <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
+        <div class="col-md-12">
+          <p>For Registration, Contact your HR Department.</p>
+          <p>Only Admin have a permission to add Users</p>
+        </div>
+      </form>
+    </div>
+    <!--If login is Successfull-->
+    <div *ngIf = "isLoggedIn == true">
+      <!--Admin Section-->
+      <div *ngIf = "role == 'ROLE_ADMIN'">
+        <img src="assets/Images/admin.png">
+        <div class="col-md-12">
+          <h1>Admin Board</h1>
+        </div>
+            <div class="col-md-12 loginDisplay">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
+              Admin Controls
+            </button>
+         </div>
+       </div>
+       <!--User Section-->
+      <div *ngIf = "role != 'ROLE_ADMIN'">
+          <img src="assets/Images/1.png">
+          <div class="col-md-12">
+            <h1>User Information</h1>
+          </div>
+          <div class="col-md-12 loginDisplay">
+            <h3>Fullname</h3>
+            <h4>{{name}}</h4>
+            <h3>Organisation</h3>
+            <h4>{{orgname}}</h4>
+            <h3>Employee Number</h3>
+            <h4>{{empno}}</h4>
+            <h3>Contact Number</h3>
+            <h4>+91 {{mobile}}</h4>
+            <h3>E-mail Address</h3>
+            <h4>{{email}}</h4>
+            <h3>Registration Id</h3>
+            <h4>{{id}}</h4>
+          </div>
+      </div>
+      </div>
+  </section>
+ 
+  </div>
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+           <div class="modal-header">
+              <h1 class="modal-title">Admin Board</h1>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-6">
+                <h2>Food Section</h2> 
+                <h3>Food Menu</h3>
+                  <div *ngFor="let file of foodInfo | async">
+                   <ul><li> <h4>{{file.foodname}}</h4></li></ul>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <h2>User Section</h2>
+                  <div *ngFor = "let u of jsonUser">
+                    <ul><li> <h4>{{u.fullname}}</h4></li></ul>
+                  </div>
+                  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+                    Register New User                
+                   </button>
+                </div>
+              </div>
+            </div>
+    </div>
+  </div>
+</div>
+
+<!-- Register New USer -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title" id="exampleModalLabel">Register User</h1>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf = "isUserRegistered == false">
+        <form class="row g-3" name = "formUser" (ngSubmit)="onSubmitUser()">
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Username</label>
+                      <input type="text" class="form-control" name="username" [(ngModel)]="formUser.username" placeholder="Enter Name">
+                      <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">E-mail</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.email" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Fullname</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.fullname" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Organisation Name</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.orgname" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Employee Number</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.empno" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Mobile Number</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.mobileno" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <label for="validationName" class="form-label">Password</label>
+            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.password" placeholder="Enter Name">
+            <label class="invalidError" id="error"></label>	
+          </div>
+          <div class="col-md-12">
+            <button class="btn btn-primary" type="submit">Submit</button>
+          </div>
+        </form>
+      </div>
+      <div *ngIf = "isUserRegistered == false">
+        <h1>{{userMessage}}</h1>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
