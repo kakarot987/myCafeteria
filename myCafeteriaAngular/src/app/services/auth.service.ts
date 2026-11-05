@@ -1,44 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
-const AUTH_API = 'http://localhost:8080/api/auth/';
-
-const httpOptions = {
-  headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-};
-
-
-@Injectable({
-  providedIn: 'root'
-})
+import { environment } from '../../environments/environment';
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  isLoggedInOk : boolean;
-
-  constructor(private http: HttpClient) { 
-    this.isLoggedInOk = false;
+  constructor(private http: HttpClient) {}
+  login(credentials: {username: string; password: string}): Observable<any> {
+    return this.http.post(environment.apiUrl + '/auth/signin', credentials);
   }
-
-  login(credentials): Observable<any> {
-    return this.http.post(AUTH_API + 'signin', {
-      username: credentials.username,
-      password: credentials.password
-    }, httpOptions
-    );
+  register(user: any): Observable<any> {
+    return this.http.post(environment.apiUrl + '/auth/signup', user);
   }
-
-  register(user): Observable<any> {
-    return this.http.post(AUTH_API + 'signup', {
-        username: user.username,
-      email: user.email,
-      fullname : user.fullname,
-        orgname : user.orgname,
-        empno : user.empno,
-        mobileno : user.mobileno,
-      password: user.password,
- role : ["user"]
-}, httpOptions);
-  }
-
-  
 }
