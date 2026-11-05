@@ -52,12 +52,14 @@ jobs:
       - name: Start MySQL and application
         working-directory: myCafeteriaD
         run: docker compose up -d --build
-      - name: Public API startup smoke test
+      - name: Frontend and proxied API startup smoke test
         run: |
           for i in $(seq 1 60); do
-            if curl --fail --silent http://localhost:8080/api/menu > /tmp/cafeteria-menu.json; then
+            if curl --fail --silent http://localhost:4200/ > /tmp/cafeteria-index.html && \
+               curl --fail --silent http://localhost:4200/api/menu > /tmp/cafeteria-menu.json; then
+              grep -q '<app-root' /tmp/cafeteria-index.html
               python3 -c 'import json; a=json.load(open("/tmp/cafeteria-menu.json")); assert len(a)>0, "menu seed empty"'
-              status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/orders/mine)
+              status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4200/api/orders/mine)
               test "$status" = "401"
               exit 0
             fi

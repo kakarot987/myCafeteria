@@ -36,5 +36,15 @@ services:
     ports:
       - "${SPRING_LOCAL_PORT:-8080}:8080"
 
+  frontend:
+    build:
+      context: ../myCafeteriaAngular
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_LOCAL_PORT:-4200}:80"
+
 volumes:
   db:

@@ -4,21 +4,33 @@ A cafeteria ordering application with an Angular customer experience, a Java Spr
 
 > **Status:** The original repository uses Angular 11, Spring Boot 2.4 and a legacy schema. This branch is a recovery and feature enhancement. Run the smoke tests and CI before production use. Legacy dependency upgrades and database migrations are tracked separately.
 
-## Quick start (Docker + Node)
+## Quick start (one command for the full stack)
 
-Requirements: Docker Engine + Docker Compose v2; Node 14 (recommended for Angular CLI 11) and npm.
+Requirements: Docker Engine with Docker Compose v2. **No local Node, npm, Java, or MySQL installation is required** when using Docker.
 
-1. Clone: `git clone https://github.com/kakarot987/myCafeteria.git` and enter the directory.
-2. Copy `myCafeteriaD/.env.example` to `myCafeteriaD/.env`. Replace **all** placeholder secrets with unique random values (JWT secret: 64+ characters; admin password: 12+ characters).
-3. Start the backend: `cd myCafeteriaD && docker compose up --build -d` (API: `http://localhost:8080`).
-4. Start the UI in another terminal: `cd myCafeteriaAngular && npm ci && npm start`. Open `http://localhost:4200`.
-5. Sign in with the bootstrap administrator credentials from the environment file. For customer testing, create a customer account through the sign-up form and log in.
+1. Clone this branch and enter the repository directory.
+2. Copy `myCafeteriaD/.env.example` to `myCafeteriaD/.env` and replace all placeholder credentials with **unique random values** (JWT key: 64+ characters; bootstrap admin password: 12+ characters). Running `./start.sh` without a file creates the template and asks you to edit it.
+3. Run **`./start.sh`** from the repository root. This builds and starts MySQL, Spring Boot, and Angular/Nginx together.
+4. Open **http://localhost:4200** for the frontend. The same-origin Nginx proxy forwards `/api/` to Spring Boot (also exposed at http://localhost:8080 for debugging).
+5. Sign in with the bootstrap administrator credentials from the environment file. Register a separate customer account through the form to test checkout.
 
-The database is persisted in a Docker named volume. For a fresh reset run `docker compose down -v` **only if you are happy to delete all database data**. First-run data populates seven sample dishes and the standard roles. The admin account is created only if its username does not exist. Remove bootstrap admin credentials after initial setup.
+To stop all services: `./start.sh down`. To follow container logs: `./start.sh logs`.
+
+On Windows without a POSIX shell, run these commands from the repository root after creating `myCafeteriaD/.env`:
+
+```powershell
+docker compose --env-file myCafeteriaD/.env -f myCafeteriaD/docker-compose.yml up -d --build
+```
+
+The database uses a persistent Docker volume. **Do not** run `docker compose down -v` unless you intend to permanently erase the data. First-run initialization creates seven sample dishes and standard roles. The bootstrap admin is created only when the username is absent. Remove the bootstrap credentials from your environment after initial setup.
+
+### Optional: run the frontend outside Docker
+
+For frontend hot reload, start only the database and API with `cd myCafeteriaD && docker compose up -d --build mysqldb app`, then run `cd myCafeteriaAngular && npm ci && npm start` using Node 14. The Angular development proxy maps `/api` to localhost:8080. Avoid running the Docker frontend simultaneously on port 4200.
 
 ## Frontend
 
-`myCafeteriaAngular/` uses Angular 11 with responsive menu cards, category chips, search, session-based JWT authentication, a tray with quantities, order history, a fulfillment view, and an inventory dashboard. Angular dev-server proxies `/api` to `localhost:8080` using `proxy.conf.json`. For a production frontend, configure your web server/reverse proxy to forward `/api` requests to the backend (and serve the compiled Angular assets).
+`myCafeteriaAngular/` uses Angular 11 with responsive menu cards, category chips, search, session-based JWT authentication, a tray with quantities, order history, a fulfillment view, and an inventory dashboard. The Docker frontend uses a multi-stage Angular build and serves the generated assets with Nginx; its same-origin `/api/` reverse proxy routes to the `app` service. For development outside Docker, `proxy.conf.json` routes Angular CLI requests to `localhost:8080`.
 
 ## Backend
 
@@ -64,7 +76,7 @@ Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders ca
 
 - Backend: `cd myCafeteriaD/myCafeteria && ./mvnw test` (Java 11; access to Maven Central required).
 - Frontend: `cd myCafeteriaAngular && npm ci && npm run build`.
-- Docker: `cd myCafeteriaD && docker compose config && docker compose up --build`.
+- Docker full stack: `./start.sh`, then open `http://localhost:4200` and verify `http://localhost:4200/api/menu` returns the sample menu.
 - Manual workflow: login → browse menu → add dishes → checkout → order history → admin/staff status updates → customer refresh → stock changes.
 - Repeat a checkout with the same Idempotency-Key; verify a second order is not created. Try an unauthorized admin action and another user's order URL.
 
