@@ -1,0 +1,12 @@
+# Secrets, credentials and local state
+.env
+**/.env
+!.env.example
+**/target/
+**/node_modules/
+**/dist/
+**/.m2/
+.idea/
+.vscode/
+*.log
+.DS_Store
