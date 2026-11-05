@@ -39,3 +39,33 @@ jobs:
         run: npm ci
       - name: Build Angular UI
         run: npm run build
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare sample secrets for isolated CI
+        run: cp myCafeteriaD/.env.example myCafeteriaD/.env
+      - name: Validate Compose configuration
+        working-directory: myCafeteriaD
+        run: docker compose config -q
+      - name: Start MySQL and application
+        working-directory: myCafeteriaD
+        run: docker compose up -d --build
+      - name: Public API startup smoke test
+        run: |
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8080/api/menu > /tmp/cafeteria-menu.json; then
+              python3 -c 'import json; a=json.load(open("/tmp/cafeteria-menu.json")); assert len(a)>0, "menu seed empty"'
+              status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/orders/mine)
+              test "$status" = "401"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f myCafeteriaD/docker-compose.yml logs --no-color
+          exit 1
+      - name: Shutdown
+        if: always()
+        working-directory: myCafeteriaD
+        run: docker compose down -v
