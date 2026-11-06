@@ -12,12 +12,24 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import com.myCafeteria.foodMenu.*;
+import com.myCafeteria.inventory.*;
+import com.myCafeteria.security.UserDetailsImpl;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 @RestController
 @Tag(name="Menu",description="Public menu browsing; administrator-only inventory management")
 @RequestMapping("/api/menu")
 public class MenuController {
  private final FoodRepository foods;
- public MenuController(FoodRepository foods){this.foods=foods;}
+ private final InventoryAdjustmentRepository adjustments;
+ public MenuController(FoodRepository foods,InventoryAdjustmentRepository adjustments){
+  this.foods=foods;this.adjustments=adjustments;
+ }
+ private void record(FoodEntity food, Long actorId, String reason, int prior){
+  int change=food.getStock()-prior;
+  // Record even zero-delta updates: they are meaningful administrative events.
+  adjustments.save(new InventoryAdjustment(food.getId(),food.getFoodname(),actorId,null,
+      reason,change,food.getStock()));
+ }
  public static class MenuView {
   public final String id,name,description,category,imageUrl;
   public final int price,stock;
@@ -43,23 +55,40 @@ public class MenuController {
  @Operation(summary="Add menu item",description="Administrator only")
  @SecurityRequirement(name="bearerAuth")
  @PostMapping @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('ADMIN')") @Transactional
- public MenuView create(@Valid @RequestBody MenuInput input){FoodEntity f=new FoodEntity();copy(input,f);return new MenuView(foods.save(f));}
+ public MenuView create(@Valid @RequestBody MenuInput input,@AuthenticationPrincipal UserDetailsImpl user){
+  FoodEntity f=new FoodEntity();copy(input,f);
+  foods.saveAndFlush(f);
+  record(f,user.getId(),"MENU_CREATED",0);
+  return new MenuView(f);
+ }
  @Operation(summary="Edit a menu item",description="Administrator only")
  @SecurityRequirement(name="bearerAuth")
  @PutMapping("/{id}") @PreAuthorize("hasRole('ADMIN')") @Transactional
- public MenuView update(@PathVariable String id,@Valid @RequestBody MenuInput input){
-  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));copy(input,f);return new MenuView(foods.save(f));
+ public MenuView update(@PathVariable String id,@Valid @RequestBody MenuInput input,
+                         @AuthenticationPrincipal UserDetailsImpl user){
+  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
+  int before=f.getStock();
+  copy(input,f);
+  record(f,user.getId(),"MENU_UPDATED",before);
+  return new MenuView(f);
  }
  @Operation(summary="Set stock quantity",description="Administrator only")
  @SecurityRequirement(name="bearerAuth")
  @PatchMapping("/{id}/stock") @PreAuthorize("hasRole('ADMIN')") @Transactional
- public MenuView stock(@PathVariable String id,@Valid @RequestBody StockInput input){
-  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));f.setStock(input.stock);return new MenuView(foods.save(f));
+ public MenuView stock(@PathVariable String id,@Valid @RequestBody StockInput input,
+                        @AuthenticationPrincipal UserDetailsImpl user){
+  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
+  int before=f.getStock();
+  f.setStock(input.stock);
+  record(f,user.getId(),"ADMIN_STOCK_SET",before);
+  return new MenuView(f);
  }
  @Operation(summary="Deactivate a menu item",description="Administrator only; retains historical order item references")
  @SecurityRequirement(name="bearerAuth")
  @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('ADMIN')") @Transactional
- public void remove(@PathVariable String id){
-  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));f.setActive(false);
+ public void remove(@PathVariable String id,@AuthenticationPrincipal UserDetailsImpl user){
+  FoodEntity f=foods.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
+  f.setActive(false);
+  record(f,user.getId(),"MENU_DEACTIVATED",f.getStock());
  }
 }

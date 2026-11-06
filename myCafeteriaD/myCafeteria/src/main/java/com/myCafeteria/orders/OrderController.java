@@ -1,6 +1,8 @@
 package com.myCafeteria.orders;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.myCafeteria.inventory.InventoryAdjustment;
+import com.myCafeteria.inventory.InventoryAdjustmentRepository;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
@@ -26,7 +28,10 @@ import com.myCafeteria.security.UserDetailsImpl;
 public class OrderController {
  private final OrderRepository orders;
  private final FoodRepository foods;
- public OrderController(OrderRepository orders,FoodRepository foods){this.orders=orders;this.foods=foods;}
+ private final InventoryAdjustmentRepository inventory;
+ public OrderController(OrderRepository orders,FoodRepository foods,InventoryAdjustmentRepository inventory){
+  this.orders=orders;this.foods=foods;this.inventory=inventory;
+ }
  public static class LineRequest {
   @NotBlank public String foodId;
   @NotNull @Min(1) @Max(50) public Integer quantity;
@@ -45,10 +50,12 @@ public class OrderController {
   public final Long id;
   public final String status;
   public final BigDecimal total;
-  public final LocalDateTime createdAt;
+  public final LocalDateTime createdAt,startedAt,readyAt,completedAt,cancelledAt;
   public final List<LineView> items;
   OrderView(CafeteriaOrder order){
-   id=order.getId();status=order.getStatus().name();total=order.getTotal();createdAt=order.getCreatedAt();
+   id=order.getId();status=order.getStatus().name();total=order.getTotal();
+   createdAt=order.getCreatedAt();startedAt=order.getStartedAt();readyAt=order.getReadyAt();
+   completedAt=order.getCompletedAt();cancelledAt=order.getCancelledAt();
    items=order.getItems().stream().map(LineView::new).collect(Collectors.toList());
   }
  }
@@ -86,6 +93,8 @@ public class OrderController {
    if(!food.isActive()||food.getRates()<=0||food.getStock()<line.getValue())
     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Item unavailable or insufficient stock");
    food.setStock(food.getStock()-line.getValue());
+   inventory.save(new InventoryAdjustment(food.getId(),food.getFoodname(),user.getId(),
+      order.getId(),"ORDER_RESERVED",-line.getValue(),food.getStock()));
    OrderItem item=new OrderItem(food,line.getValue());
    order.addItem(item);
    total=total.add(item.getLineTotal());
@@ -126,12 +135,14 @@ public class OrderController {
       .orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,"Ordered menu item no longer exists"));
     try{
      food.setStock(Math.addExact(food.getStock(),line.getQuantity()));
+     inventory.save(new InventoryAdjustment(food.getId(),food.getFoodname(),null,
+        order.getId(),"ORDER_CANCELLED",line.getQuantity(),food.getStock()));
     }catch(ArithmeticException ex){
      throw new ResponseStatusException(HttpStatus.CONFLICT,"Stock total overflow");
     }
    }
   }
-  order.setStatus(next);
+  order.advanceTo(next);
   return new OrderView(orders.save(order));
  }
  public static boolean validTransition(CafeteriaOrder.Status current,CafeteriaOrder.Status next){
