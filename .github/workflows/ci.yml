@@ -74,3 +74,40 @@ jobs:
         if: always()
         working-directory: myCafeteriaD
         run: docker compose down -v
+
+  mysql-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-test-only
+          MYSQL_DATABASE: cafeteria_it
+          MYSQL_USER: cafeteria_ci
+          MYSQL_PASSWORD: ci-password-test-only
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-test-only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    defaults:
+      run:
+        working-directory: myCafeteriaD/myCafeteria
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: myCafeteriaD/myCafeteria/pom.xml
+      - name: Exercise InnoDB ordering and rollback
+        run: mvn -B -Dtest=MySqlConcurrencyIT test
+        env:
+          RUN_MYSQL_IT: 'true'
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/cafeteria_it?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: cafeteria_ci
+          SPRING_DATASOURCE_PASSWORD: ci-password-test-only
+          APP_JWT_SECRET: ci-only-mysql-it-secret-never-use-this-in-production-1234567890
