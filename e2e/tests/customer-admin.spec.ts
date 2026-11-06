@@ -93,6 +93,8 @@ test('customer-to-admin ordering and menu edit flow', async ({ browser }, testIn
     expect(denied.status()).toBe(404);
 
     await staff.getByRole('button', { name: 'Manage orders' }).click();
+    // Completed orders leave the default Active queue; use All for lifecycle assertions.
+    await staff.getByLabel('Filter orders').selectOption('ALL');
     const staffOrder = staff.locator('.order-card').filter({ hasText: updatedName }).first();
     await expect(staffOrder).toContainText('PLACED');
     for (const state of ['PREPARING', 'READY', 'COMPLETED']) {
