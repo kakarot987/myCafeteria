@@ -42,6 +42,17 @@ public class FoodEntity {
 	@Lob
 	private byte[] data;
 	  
+    @Column(name = "stock", nullable = false)
+    private int stock = 0;
+
+    @Column(name = "active")
+    private Boolean active = true;
+
+    public int getStock() { return stock; }
+    public void setStock(int stock) { this.stock = stock; }
+    public boolean isActive() { return active == null || active; }
+    public void setActive(boolean active) { this.active = active; }
+
 	public String getId() {
 		return id;
 	}

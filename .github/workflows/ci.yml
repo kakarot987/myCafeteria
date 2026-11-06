@@ -1,0 +1,138 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: myCafeteriaD/myCafeteria
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: myCafeteriaD/myCafeteria/pom.xml
+      - name: Test backend
+        run: mvn -B test
+        env:
+          APP_JWT_SECRET: ci-only-secret-signing-value-change-this-in-production-12345678901234567890
+          SPRING_PROFILES_ACTIVE: test
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: myCafeteriaAngular
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '14'
+          cache: npm
+          cache-dependency-path: myCafeteriaAngular/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Angular UI
+        run: npm run build
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare sample secrets for isolated CI
+        run: cp myCafeteriaD/.env.example myCafeteriaD/.env
+      - name: Validate Compose configuration
+        working-directory: myCafeteriaD
+        run: docker compose config -q
+      - name: Start MySQL and application
+        working-directory: myCafeteriaD
+        run: docker compose up -d --build
+      - name: Frontend and proxied API startup smoke test
+        run: |
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://localhost:4200/ > /tmp/cafeteria-index.html && \
+               curl --fail --silent http://localhost:4200/api/menu > /tmp/cafeteria-menu.json; then
+              grep -q '<app-root' /tmp/cafeteria-index.html
+              python3 -c 'import json; a=json.load(open("/tmp/cafeteria-menu.json")); assert len(a)>0, "menu seed empty"'
+              status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4200/api/orders/mine)
+              test "$status" = "401"
+              curl --fail --silent http://localhost:4200/v3/api-docs/cafeteria > /tmp/cafeteria-openapi.json
+              python3 -c 'import json; d=json.load(open("/tmp/cafeteria-openapi.json")); assert "/api/orders" in d["paths"]; assert "/api/menu" in d["paths"]; assert "bearerAuth" in d["components"]["securitySchemes"]'
+              curl --fail --silent http://localhost:4200/swagger-ui/index.html | grep -qi 'swagger'
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f myCafeteriaD/docker-compose.yml logs --no-color
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright browser testing dependencies
+        working-directory: e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Run customer and admin browser walkthroughs
+        working-directory: e2e
+        run: npm test
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4200
+          E2E_ADMIN_USER: admin
+          E2E_ADMIN_PASSWORD: replace-with-a-unique-admin-password-12-chars-minimum
+      - name: Archive UI screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cafeteria-browser-screenshots
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Shutdown
+        if: always()
+        working-directory: myCafeteriaD
+        run: docker compose down -v
+
+  mysql-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-test-only
+          MYSQL_DATABASE: cafeteria_it
+          MYSQL_USER: cafeteria_ci
+          MYSQL_PASSWORD: ci-password-test-only
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-test-only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    defaults:
+      run:
+        working-directory: myCafeteriaD/myCafeteria
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          cache-dependency-path: myCafeteriaD/myCafeteria/pom.xml
+      - name: Exercise InnoDB ordering and rollback
+        run: mvn -B -Dtest=MySqlConcurrencyIT test
+        env:
+          RUN_MYSQL_IT: 'true'
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/cafeteria_it?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+          SPRING_DATASOURCE_USERNAME: cafeteria_ci
+          SPRING_DATASOURCE_PASSWORD: ci-password-test-only
+          APP_JWT_SECRET: ci-only-mysql-it-secret-never-use-this-in-production-1234567890
