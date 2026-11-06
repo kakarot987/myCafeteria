@@ -63,6 +63,10 @@ test('customer-to-admin ordering and menu edit flow', async ({ browser }, testIn
     await expect(card).toContainText('₹79');
     await card.getByRole('button', { name: 'Add ' + updatedName + ' to cart' }).click();
     await expect(customer.getByText('1 items')).toBeVisible();
+    await customer.reload();
+    // A per-account local cart survives reload, with the same quantity and price.
+    await expect(customer.getByText('1 items')).toBeVisible();
+    await expect(customer.locator('.cart-line').filter({ hasText: updatedName })).toContainText('₹79');
     await customer.screenshot({ path: testInfo.outputPath('customer-menu-cart.png'), fullPage: true });
     await customer.getByRole('button', { name: /Place order/ }).click();
     await expect(customer.getByRole('heading', { name: 'My orders' })).toBeVisible();
@@ -98,7 +102,19 @@ test('customer-to-admin ordering and menu edit flow', async ({ browser }, testIn
     await staff.screenshot({ path: testInfo.outputPath('admin-completed-order.png'), fullPage: true });
     await customer.getByRole('button', { name: 'Refresh' }).click();
     await expect(placedOrder.locator('.status')).toHaveText('COMPLETED');
+    await expect(placedOrder.locator('.timeline-step.reached')).toHaveCount(4);
     await customer.screenshot({ path: testInfo.outputPath('customer-order-complete.png'), fullPage: true });
+
+    await staff.getByRole('button', { name: 'Dashboard' }).click();
+    await expect(staff.getByRole('heading', { name: 'Kitchen at a glance' })).toBeVisible();
+    await expect(staff.getByText(updatedName).first()).toBeVisible();
+    await expect(staff.getByText('Completed sales')).toBeVisible();
+    await staff.screenshot({ path: testInfo.outputPath('admin-analytics.png'), fullPage: true });
+
+    await staff.getByRole('button', { name: 'Inventory' }).click();
+    await expect(staff.getByRole('heading', { name: 'Inventory movement history' })).toBeVisible();
+    await expect(staff.locator('.audit-table tbody tr').first()).toBeVisible();
+    await staff.screenshot({ path: testInfo.outputPath('admin-stock-history.png'), fullPage: true });
   } finally {
     await staffContext.close();
     await customerContext.close();
