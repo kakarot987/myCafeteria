@@ -199,7 +199,10 @@ public class OrderIntegrationTest {
       .andReturn().getResponse().getContentAsString();
   com.fasterxml.jackson.databind.JsonNode stats=json.readTree(data);
   assertEquals(7,stats.path("daily").size());
+  org.junit.jupiter.api.Assertions.assertTrue(stats.path("weekly").size()>=1);
   org.junit.jupiter.api.Assertions.assertTrue(stats.path("revenue").asDouble()>=80.0);
+  org.junit.jupiter.api.Assertions.assertTrue(stats.path("lowStockCount").asInt()>=1);
+  org.junit.jupiter.api.Assertions.assertTrue(stats.path("popularDishes").size()>=1);
   org.junit.jupiter.api.Assertions.assertTrue(stats.path("averagePrepMinutes").asDouble()>=0);
   String audit=mvc.perform(get("/api/admin/inventory/history?foodId="+item.getId())
       .header("Authorization",bearer(admin))).andExpect(status().isOk())
