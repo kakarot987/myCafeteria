@@ -47,7 +47,7 @@ public class OrderController {
  @PostMapping
  @ResponseStatus(HttpStatus.CREATED)
  @Transactional
- @PreAuthorize("hasAnyRole('USER','ADMIN','MODERATOR')")
+ @PreAuthorize("hasRole('USER')")
  public OrderView place(@AuthenticationPrincipal UserDetailsImpl user,@RequestHeader("Idempotency-Key") String key,@Valid @RequestBody CreateRequest request){
   if(key.trim().isEmpty()||key.length()>100)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid Idempotency-Key");
   Map<String,Integer> quantities=new TreeMap<>();
@@ -96,6 +96,21 @@ public class OrderController {
   CafeteriaOrder.Status next;
   try{next=CafeteriaOrder.Status.valueOf(request.status);}catch(IllegalArgumentException e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unknown status");}
   if(!validTransition(order.getStatus(),next))throw new ResponseStatusException(HttpStatus.CONFLICT,"Invalid transition");
+  if(next==CafeteriaOrder.Status.CANCELLED){
+   // The order row lock guarantees a cancelled order is restocked only once.
+   // All product rows use the same deterministic lock order as checkout.
+   List<OrderItem> lines=new ArrayList<>(order.getItems());
+   lines.sort(Comparator.comparing(OrderItem::getFoodId));
+   for(OrderItem line:lines){
+    FoodEntity food=foods.findForUpdate(line.getFoodId())
+      .orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,"Ordered menu item no longer exists"));
+    try{
+     food.setStock(Math.addExact(food.getStock(),line.getQuantity()));
+    }catch(ArithmeticException ex){
+     throw new ResponseStatusException(HttpStatus.CONFLICT,"Stock total overflow");
+    }
+   }
+  }
   order.setStatus(next);
   return new OrderView(orders.save(order));
  }

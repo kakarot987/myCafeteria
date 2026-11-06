@@ -106,6 +106,7 @@
           <p class="muted">{{order.createdAt | date:'medium'}}</p>
           <div *ngFor="let line of order.items" class="order-line"><span>{{line.quantity}} × {{line.foodName}}</span><strong>₹{{line.lineTotal}}</strong></div>
           <button class="primary-btn full" *ngIf="isStaff && nextStatus(order.status)" [disabled]="busy" (click)="advance(order)">Mark as {{nextStatus(order.status) | lowercase}}</button>
+          <button class="danger-btn cancel-btn" *ngIf="isStaff && (order.status === 'PLACED' || order.status === 'PREPARING')" [disabled]="busy" (click)="cancelOrder(order)">Cancel order &amp; restore stock</button>
         </article>
       </div>
       <p class="empty" *ngIf="!orders.length">No orders yet. Once you order, you'll see its progress here.</p>

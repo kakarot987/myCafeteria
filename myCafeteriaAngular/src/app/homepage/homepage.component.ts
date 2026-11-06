@@ -138,12 +138,25 @@ export class HomepageComponent implements OnInit {
     return ({PLACED:'PREPARING', PREPARING:'READY', READY:'COMPLETED'} as {[key:string]:string})[status] || '';
   }
   advance(order: CafeteriaOrder): void {
-    const status = this.nextStatus(order.status);
-    if (!status) { return; }
-    this.busy = true; this.error = '';
+    const next = this.nextStatus(order.status);
+    if (next) { this.changeOrderStatus(order, next); }
+  }
+  cancelOrder(order: CafeteriaOrder): void {
+    if (!this.isStaff || (order.status !== 'PLACED' && order.status !== 'PREPARING')) { return; }
+    if (confirm('Cancel order #' + order.id + ' and return its items to stock?')) {
+      this.changeOrderStatus(order, 'CANCELLED');
+    }
+  }
+  private changeOrderStatus(order: CafeteriaOrder, status: string): void {
+    if (this.busy) { return; }
+    this.busy = true; this.error = ''; this.success = '';
     this.http.patch<CafeteriaOrder>(environment.apiUrl + '/orders/' + order.id + '/status',
-      {status}, {headers: this.headers()}).subscribe(() => { this.busy = false; this.loadOrders(); },
-      e => this.fail(e));
+      {status}, {headers: this.headers()}).subscribe(() => {
+        this.busy = false;
+        this.success = 'Order #' + order.id + ' updated to ' + status.toLowerCase() + '.';
+        this.loadOrders();
+        if (status === 'CANCELLED') { this.loadMenu(); }
+      }, e => this.fail(e));
   }
   createFood(): void {
     this.busy = true; this.error = '';
