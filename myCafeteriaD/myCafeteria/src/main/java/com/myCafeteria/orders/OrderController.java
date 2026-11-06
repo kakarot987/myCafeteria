@@ -120,7 +120,8 @@ public class OrderController {
  public List<OrderView> all(){return orders.findAllByOrderByIdDesc().stream().map(OrderView::new).collect(Collectors.toList());}
  @Operation(summary="Update fulfillment status",description="Staff only: PLACED→PREPARING→READY→COMPLETED. Staff may cancel PLACED/PREPARING and restore stock exactly once.")
  @PatchMapping("/{id}/status") @PreAuthorize("hasAnyRole('ADMIN','MODERATOR')") @Transactional
- public OrderView status(@PathVariable Long id,@Valid @RequestBody StatusRequest request){
+ public OrderView status(@PathVariable Long id,@Valid @RequestBody StatusRequest request,
+                         @AuthenticationPrincipal UserDetailsImpl user){
   CafeteriaOrder order=orders.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
   CafeteriaOrder.Status next;
   try{next=CafeteriaOrder.Status.valueOf(request.status);}catch(IllegalArgumentException e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unknown status");}
@@ -135,7 +136,7 @@ public class OrderController {
       .orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,"Ordered menu item no longer exists"));
     try{
      food.setStock(Math.addExact(food.getStock(),line.getQuantity()));
-     inventory.save(new InventoryAdjustment(food.getId(),food.getFoodname(),null,
+     inventory.save(new InventoryAdjustment(food.getId(),food.getFoodname(),user.getId(),
         order.getId(),"ORDER_CANCELLED",line.getQuantity(),food.getStock()));
     }catch(ArithmeticException ex){
      throw new ResponseStatusException(HttpStatus.CONFLICT,"Stock total overflow");
