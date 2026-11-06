@@ -3,10 +3,11 @@
     <a class="brand" href="/" aria-label="myCafeteria home"><span class="brand-icon">☕</span> my<span>Cafeteria</span></a>
     <nav class="navigation" aria-label="Main navigation">
       <button [class.active]="activeTab === 'menu'" (click)="activeTab='menu'">Explore menu</button>
-      <button *ngIf="user" [class.active]="activeTab === 'orders'" (click)="activeTab='orders';loadOrders()">
+      <button *ngIf="isAdmin" [class.active]="activeTab === 'dashboard'" (click)="showDashboard()">Dashboard</button>
+      <button *ngIf="user" [class.active]="activeTab === 'orders'" (click)="showOrders()">
         {{isStaff ? 'Manage orders' : 'My orders'}}
       </button>
-      <button *ngIf="isAdmin" [class.active]="activeTab === 'manage'" (click)="activeTab='manage'">Inventory</button>
+      <button *ngIf="isAdmin" [class.active]="activeTab === 'manage'" (click)="showInventory()">Inventory</button>
     </nav>
     <div class="account">
       <span *ngIf="user" class="hello">Hi, {{user.fullname || user.username}}</span>
@@ -59,7 +60,8 @@
             </div>
           </article>
         </div>
-        <p class="empty" *ngIf="!filteredMenu.length">No dishes found. Try another category or search.</p>
+        <div *ngIf="loadingMenu" class="loading-placeholder" role="status">Loading fresh dishes…</div>
+        <p class="empty" *ngIf="!filteredMenu.length && !loadingMenu">No dishes found. Try another category or search.</p>
       </div>
 
       <aside class="side-panel">
@@ -72,7 +74,8 @@
           </div>
           <div class="cart-total" *ngIf="cart.length"><span>Subtotal</span><strong>₹{{total}}</strong></div>
           <p class="error" *ngIf="unavailable">Some items are no longer available in your requested quantity.</p>
-          <button class="primary-btn full" [disabled]="!cart.length || busy || unavailable" (click)="checkout()">Place order · ₹{{total}}</button>
+          <button class="primary-btn full" [disabled]="!cart.length || busy || unavailable" (click)="checkout()">{{busy ? 'Placing order…' : 'Place order · ₹' + total}}</button>
+          <small class="muted" *ngIf="cart.length">Your tray is saved on this device for this account.</small>
           <small class="muted">Payment is collected at pickup. No online payment is processed.</small>
         </div>
         <div class="panel" *ngIf="!user">
@@ -98,18 +101,105 @@
 
     <section *ngIf="activeTab === 'account' && !user" class="account-redirect"><h2>Welcome to myCafeteria</h2><p>Sign in from the menu to place your first order.</p><button class="primary-btn" (click)="activeTab='menu'">Go to sign in</button></section>
 
+    <section *ngIf="activeTab === 'dashboard' && isAdmin" class="orders-panel dashboard-panel">
+      <div class="section-head">
+        <div><div class="eyebrow dark">BUSINESS OVERVIEW</div><h2>Kitchen at a glance</h2>
+          <p>Completed-order sales, kitchen timing, and inventory insights. Times use UTC.</p></div>
+        <div class="toolbar">
+          <label class="inline-label">Reporting period
+            <select [(ngModel)]="reportDays" (ngModelChange)="loadDashboard()" aria-label="Reporting period">
+              <option [ngValue]="7">Last 7 days</option><option [ngValue]="30">Last 30 days</option>
+            </select>
+          </label>
+          <button class="outline-btn" (click)="loadDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+      <div *ngIf="loadingDashboard && !dashboard" class="loading-placeholder" role="status">Loading dashboard…</div>
+      <ng-container *ngIf="dashboard as stats">
+        <div class="metrics-grid">
+          <article class="metric-tile"><span>Completed sales</span><strong>₹{{stats.revenue | number:'1.0-2'}}</strong><small>Completed orders only · {{stats.range}}</small></article>
+          <article class="metric-tile"><span>Completed orders</span><strong>{{stats.completedOrders}}</strong><small>Orders fulfilled in the selected period</small></article>
+          <article class="metric-tile"><span>Orders placed</span><strong>{{stats.totalOrders}}</strong><small>Includes pending and cancelled orders</small></article>
+          <article class="metric-tile"><span>Avg. preparation</span><strong>{{stats.averagePrepMinutes | number:'1.0-1'}} min</strong><small>Preparing → ready, when timestamps exist</small></article>
+        </div>
+        <div class="insights-grid">
+          <div class="panel">
+            <div class="panel-heading"><h3>Daily sales</h3><small>₹ · completed orders</small></div>
+            <div class="bar-chart" role="img" aria-label="Daily completed order sales">
+              <div *ngFor="let day of stats.daily" class="bar-column">
+                <strong class="bar-value" *ngIf="day.revenue">₹{{day.revenue}}</strong>
+                <div class="bar-track"><div class="bar-fill" [style.height.%]="revenueBar(day.revenue)"></div></div>
+                <small>{{day.date | date:'d MMM'}}</small>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Order status mix</h3><small>Placed in period</small></div>
+            <div class="status-summary" *ngFor="let state of ['PLACED','PREPARING','READY','COMPLETED','CANCELLED']">
+              <span>{{stepLabel(state)}}</span><strong>{{stats.statusCounts[state] || 0}}</strong>
+            </div>
+            <button class="outline-btn full" (click)="showOrders()">Open fulfillment queue</button>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Popular dishes</h3><small>Completed orders</small></div>
+            <p class="muted" *ngIf="!stats.popularDishes.length">No completed orders yet for this period.</p>
+            <div class="rank-row" *ngFor="let dish of stats.popularDishes;let i=index">
+              <span class="rank-number">{{i+1}}</span><span class="rank-name">{{dish.name}}<small>{{dish.quantity}} sold</small></span>
+              <strong>₹{{dish.revenue}}</strong>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Stock alerts</h3><span class="alert-counter">{{stats.lowStockCount}} items</span></div>
+            <p class="muted" *ngIf="!stats.lowStock.length">No products below the stock threshold.</p>
+            <div class="rank-row" *ngFor="let item of stats.lowStock">
+              <span class="rank-name">{{item.name}}<small>{{item.category}}</small></span>
+              <span class="stock-badge" [class.out-of-stock]="item.stock === 0">{{item.stock === 0 ? 'Sold out' : item.stock + ' left'}}</span>
+            </div>
+            <button class="outline-btn full" (click)="showInventory()">Manage inventory</button>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
     <section *ngIf="activeTab === 'orders'" class="orders-panel">
-      <div class="section-head"><div><div class="eyebrow dark">ORDER TRACKER</div><h2>{{isStaff ? 'Kitchen orders' : 'My orders'}}</h2><p>Follow every order from the kitchen to pickup.</p></div><button class="outline-btn" (click)="loadOrders()">↻ Refresh</button></div>
+      <div class="section-head">
+        <div><div class="eyebrow dark">ORDER TRACKER</div><h2>{{isStaff ? 'Kitchen orders' : 'My orders'}}</h2>
+          <p>Follow every order from the kitchen to pickup. <span *ngIf="lastOrdersUpdated">Updated {{lastOrdersUpdated | date:'shortTime'}} · auto-refreshes every 15s</span></p></div>
+        <div class="toolbar">
+          <label class="inline-label">Filter orders
+            <select [(ngModel)]="orderFilter" aria-label="Filter orders">
+              <option value="ACTIVE">Active</option><option value="ALL">All orders</option>
+              <option value="PLACED">Placed</option><option value="PREPARING">Preparing</option>
+              <option value="READY">Ready</option><option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </label>
+          <button class="outline-btn" (click)="loadOrders()">↻ Refresh</button>
+        </div>
+      </div>
+      <div *ngIf="loadingOrders && !orders.length" class="loading-placeholder" role="status">Checking order status…</div>
+      <div class="confirmation-banner" *ngIf="checkoutConfirmation">
+        <strong>✓ Order #{{checkoutConfirmation}} confirmed!</strong>
+        <span>The kitchen received your order. Track its progress below.</span>
+        <button (click)="checkoutConfirmation=null" aria-label="Dismiss confirmation">×</button>
+      </div>
       <div class="order-grid">
-        <article class="order-card" *ngFor="let order of orders">
+        <article class="order-card" *ngFor="let order of visibleOrders">
           <div class="order-top"><div><small>ORDER #{{order.id}}</small><h3>₹{{order.total}}</h3></div><span class="status">{{order.status}}</span></div>
           <p class="muted">{{order.createdAt | date:'medium'}}</p>
+          <div class="order-timeline" aria-label="Fulfillment progress">
+            <div class="timeline-step" *ngFor="let step of orderSteps(order)" [class.reached]="stepReached(order,step)" [class.cancelled]="step==='CANCELLED'">
+              <span class="timeline-dot"></span><span>{{stepLabel(step)}}</span>
+            </div>
+          </div>
+          <p *ngIf="isStaff && order.status === 'PREPARING'" class="prep-clock">⏱ {{prepElapsed(order)}}</p>
+          <p *ngIf="order.status === 'READY'" class="pickup-note">✓ Your order is ready for pickup.</p>
           <div *ngFor="let line of order.items" class="order-line"><span>{{line.quantity}} × {{line.foodName}}</span><strong>₹{{line.lineTotal}}</strong></div>
           <button class="primary-btn full" *ngIf="isStaff && nextStatus(order.status)" [disabled]="busy" (click)="advance(order)">Mark as {{nextStatus(order.status) | lowercase}}</button>
           <button class="danger-btn cancel-btn" *ngIf="isStaff && (order.status === 'PLACED' || order.status === 'PREPARING')" [disabled]="busy" (click)="cancelOrder(order)">Cancel order &amp; restore stock</button>
         </article>
       </div>
-      <p class="empty" *ngIf="!orders.length">No orders yet. Once you order, you'll see its progress here.</p>
+      <p class="empty" *ngIf="!visibleOrders.length && !loadingOrders">{{orders.length ? 'No orders match this filter.' : 'No orders yet. Once you order, you’ll see their progress here.'}}</p>
     </section>
 
     <section *ngIf="activeTab === 'manage' && isAdmin" class="orders-panel">
@@ -126,15 +216,45 @@
           <button class="outline-btn" type="button" (click)="closeFoodEditor()">Cancel</button>
         </div>
       </form>
+      <div class="toolbar inventory-toolbar">
+        <label class="inline-label">Show items
+          <select [(ngModel)]="inventoryFilter" aria-label="Inventory filter">
+            <option value="All">All items</option><option value="Low stock">Low stock (1–5)</option>
+            <option value="Sold out">Sold out</option>
+            <option *ngFor="let cat of categories.slice(1)" [value]="cat">{{cat}}</option>
+          </select>
+        </label>
+        <button class="outline-btn" (click)="loadHistory()">↻ Refresh history</button>
+      </div>
       <div class="inventory-list">
-        <div class="panel inventory-row" *ngFor="let item of menu">
-          <div><strong>{{item.name}}</strong><small>{{item.category}} · ₹{{item.price}}</small><small>{{item.description}}</small></div>
+        <div class="panel inventory-row" *ngFor="let item of filteredInventory">
+          <div><strong>{{item.name}}</strong>
+            <span *ngIf="item.stock === 0" class="stock-badge out-of-stock">Sold out</span>
+            <span *ngIf="item.stock > 0 && item.stock <= lowStockThreshold" class="stock-badge">Low stock</span>
+            <small>{{item.category}} · ₹{{item.price}}</small><small>{{item.description}}</small></div>
           <div class="inventory-actions">
             <label>Stock <input type="number" min="0" [attr.aria-label]="'Stock for ' + item.name" [name]="'stock'+item.id" [(ngModel)]="editingStock[item.id]"></label>
             <button class="outline-btn" [disabled]="busy" (click)="updateStock(item)">Save stock</button>
             <button class="outline-btn" [disabled]="busy" (click)="editFood(item)">Edit</button>
             <button class="danger-btn" [disabled]="busy" (click)="removeFood(item)">Remove</button>
           </div>
+        </div>
+      </div>
+      <p class="empty" *ngIf="!filteredInventory.length">No menu items match your filter.</p>
+      <div class="panel audit-panel">
+        <div class="panel-heading"><h3>Inventory movement history</h3><small>Latest 100 recorded adjustments</small></div>
+        <p *ngIf="loadingHistory" class="muted">Loading inventory changes…</p>
+        <p *ngIf="!loadingHistory && !stockHistory.length" class="muted">No inventory movements recorded yet.</p>
+        <div class="audit-scroll" *ngIf="stockHistory.length">
+          <table class="audit-table">
+            <thead><tr><th>When (UTC)</th><th>Dish</th><th>Reason</th><th>Change</th><th>After</th></tr></thead>
+            <tbody><tr *ngFor="let movement of stockHistory">
+              <td>{{movement.createdAt | date:'short'}}</td><td>{{movement.foodName}}</td>
+              <td>{{movement.reason | titlecase}}</td>
+              <td [class.negative]="movement.delta < 0">{{movement.delta > 0 ? '+' : ''}}{{movement.delta}}</td>
+              <td>{{movement.quantityAfter}}</td>
+            </tr></tbody>
+          </table>
         </div>
       </div>
     </section>
