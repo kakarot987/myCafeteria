@@ -25,9 +25,9 @@ Public reads: `GET /api/menu`, food images and registration. Order placement nee
 | M1 baseline | Module/API inventory, environment template and Docker rebuild added | Clean-room developer verification still needed; CI Docker smoke passed |
 | M2 authentication | Removed signup role escalation; private order ownership, staff/admin restrictions; token flow in UI | End-to-end auth tests, token revocation/refresh, stronger signup safeguards |
 | M3 ordering | Persisted order lines, stock locks, atomic totals and idempotency key | Harden concurrent retry behavior under real MySQL and validate production readiness |
-| M4 fulfillment | Status progression, dashboard, menu stock changes, history, atomic one-time cancellation stock restoration | Deeper admin editing UX and more operational reports |
+| M4 fulfillment | Status progression, dashboard, full menu editing, inventory, history, one-time cancellation stock restoration | Operational reports and further UX testing |
 | M5 operations | Full-stack Docker Compose, Flyway V1/V2 migrations, OpenAPI/Swagger, H2 integration tests and dedicated real-MySQL concurrency suite | Verify historical MySQL upgrade path, expand stress tests and browser E2E coverage |
-| M6 release | Responsive frontend, architecture documentation and sample menu | Screenshots, recorded demo, verified fresh-clone release |
+| M6 release | Responsive UI, architecture documentation, seeded menu, automated browser screenshots and customer/admin E2E suite | Recorded demo, independent fresh-clone run, release tagging |
 
 ## Release checklist
 
@@ -40,7 +40,7 @@ Public reads: `GET /api/menu`, food images and registration. Order placement nee
 - [ ] Failed multi-item checkout rolls back all reserved stock.
 - [ ] Admin can add/remove items, modify inventory and fulfill an order.
 - [ ] Production key rotation, historic-database backup/migration validation and security review are done.
-- [ ] Screenshots and short demo are captured and linked in README.
+- [ ] Verify screenshot artifact from latest browser CI and record/link a narrated short demo.
 
 ## Migration policy
 
@@ -49,3 +49,7 @@ Flyway V1 reproduces the legacy schema for new databases; V2 adds inventory and 
 ## OpenAPI and MySQL CI
 
 Swagger UI: `/swagger-ui/index.html`; JSON: `/v3/api-docs/cafeteria`. Nginx proxies both through the frontend origin. `mysql-integration` CI runs real InnoDB transactional tests separate from the normal H2 suite, covering overlapping checkout, duplicate keys and rollback. Consult the README for the local test environment.
+
+## Browser portfolio validation
+
+The `e2e/` Playwright test suite covers customer/admin browser workflows and mobile layout, running after the Docker smoke test on a disposable CI database. Each successful run attaches screenshots as `cafeteria-browser-screenshots`. Local commands and caveats are in the README. Screenshot artifacts are not permanent; store reviewed release images separately before tagging.

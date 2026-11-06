@@ -95,6 +95,26 @@ mvn -B -Dtest=MySqlConcurrencyIT test
 
 These tests create and change real database rows. **Never point them at a valuable or production database.**
 
+## Portfolio release and browser walkthrough
+
+The **Playwright Chromium** suite in `e2e/` verifies the workflow in a real browser:
+administrator login → menu item creation and editing → customer registration and checkout → customer order ownership → staff order fulfillment → customer status refresh. A separate mobile viewport test checks navigation and horizontal overflow.
+
+The GitHub Actions `docker-smoke` job starts the full three-service stack and runs the browser tests against `http://127.0.0.1:4200`. The job uploads a **cafeteria-browser-screenshots** artifact containing desktop storefront/cart, admin inventory, order tracking, and mobile screenshots. In GitHub, open the latest successful workflow run and find the artifact under **Artifacts**. Screenshots are generated from disposable CI accounts; no sample credentials or recorded tokens should be published.
+
+For a local browser run, start the application with `./start.sh` using nonproduction accounts, then in a second terminal:
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+E2E_ADMIN_USER=admin E2E_ADMIN_PASSWORD='your-local-bootstrap-password' npm test
+```
+
+These browser tests create and update data in the configured database. Use a disposable environment. The browser suite requires Node 18+ separately from the legacy Angular 11 build, but the application itself needs only Docker when using `./start.sh`.
+
+A recorded narrated demo and independent clean-room upgrade of a historical database are still release checklist items; browser screenshots do not substitute for these.
+
 ## Verification
 
 - Backend: `cd myCafeteriaD/myCafeteria && ./mvnw test` (Java 11; access to Maven Central required).
