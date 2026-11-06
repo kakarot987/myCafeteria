@@ -20,7 +20,7 @@ interface LowStock { id: string; name: string; category: string; stock: number; 
 interface Dashboard {
   range: string; revenue: number; completedOrders: number; totalOrders: number;
   lowStockCount: number; averagePrepMinutes: number; statusCounts: {[key:string]:number};
-  daily: DailyReport[]; popularDishes: PopularDish[]; lowStock: LowStock[];
+  daily: DailyReport[]; weekly: DailyReport[]; popularDishes: PopularDish[]; lowStock: LowStock[];
 }
 interface InventoryMovement {
   id: number; foodId: string; foodName: string; actorId?: number; orderId?: number;
@@ -40,6 +40,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
   dashboard: Dashboard | null = null;
   stockHistory: InventoryMovement[] = [];
   reportDays = 7;
+  reportGrouping = "daily";
   orderFilter = 'ACTIVE';
   inventoryFilter = 'All';
   lowStockThreshold = 5;
@@ -109,8 +110,12 @@ export class HomepageComponent implements OnInit, OnDestroy {
       (this.inventoryFilter === 'Low stock' ? item.stock > 0 && item.stock <= this.lowStockThreshold
         : this.inventoryFilter === 'Sold out' ? item.stock === 0 : item.category === this.inventoryFilter));
   }
+  get reportPoints(): DailyReport[] {
+    if (!this.dashboard) { return []; }
+    return this.reportGrouping === 'weekly' ? this.dashboard.weekly : this.dashboard.daily;
+  }
   get maxDailyRevenue(): number {
-    return Math.max(1, ...((this.dashboard && this.dashboard.daily || []).map(d => d.revenue)));
+    return Math.max(1, ...(this.reportPoints.map(d => d.revenue)));
   }
   revenueBar(revenue: number): number {
     return Math.max(2, Math.round(revenue / this.maxDailyRevenue * 100));

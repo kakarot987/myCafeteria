@@ -124,12 +124,16 @@
         </div>
         <div class="insights-grid">
           <div class="panel">
-            <div class="panel-heading"><h3>Daily sales</h3><small>₹ · completed orders</small></div>
-            <div class="bar-chart" role="img" aria-label="Daily completed order sales">
-              <div *ngFor="let day of stats.daily" class="bar-column">
+            <div class="panel-heading"><h3>{{reportGrouping === 'weekly' ? 'Weekly' : 'Daily'}} sales</h3><small>₹ · completed orders</small></div>
+            <div class="chart-switch" role="group" aria-label="Sales chart grouping">
+              <button type="button" [class.selected]="reportGrouping === 'daily'" (click)="reportGrouping='daily'">Daily</button>
+              <button type="button" [class.selected]="reportGrouping === 'weekly'" (click)="reportGrouping='weekly'">Weekly</button>
+            </div>
+            <div class="bar-chart" role="img" [attr.aria-label]="reportGrouping === 'weekly' ? 'Weekly completed order sales' : 'Daily completed order sales'">
+              <div *ngFor="let day of reportPoints" class="bar-column">
                 <strong class="bar-value" *ngIf="day.revenue">₹{{day.revenue}}</strong>
                 <div class="bar-track"><div class="bar-fill" [style.height.%]="revenueBar(day.revenue)"></div></div>
-                <small>{{day.date | date:'d MMM'}}</small>
+                <small>{{reportGrouping === 'weekly' ? 'Wk ' : ''}}{{day.date | date:'d MMM'}}</small>
               </div>
             </div>
           </div>

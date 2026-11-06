@@ -60,3 +60,7 @@
 .pickup-note,.prep-clock{color:#326a41;background:#eef5ec;padding:10px;border-radius:7px;font-size:12px}
 @media(max-width:1050px){.metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.metrics-grid,.insights-grid{grid-template-columns:1fr}.dashboard-panel .section-head .toolbar,.orders-panel .section-head .toolbar{margin-top:14px}.metric-tile{padding:18px}.order-timeline{gap:1px}.timeline-step{font-size:9px}}
+
+.chart-switch{display:flex;gap:6px;margin:12px 0}
+.chart-switch button{padding:7px 13px;border:1px solid #cfded0;background:#fff;color:#406148;font-size:12px;border-radius:8px}
+.chart-switch button.selected{background:#2b523a;color:#fff}
