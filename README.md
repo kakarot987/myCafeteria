@@ -72,6 +72,29 @@ The server reads price from the database, validates quantities and availability,
 
 Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders can be cancelled from `PLACED` or `PREPARING` by staff. Cancelled orders restore their stock once, within the same database transaction. Invalid transitions or attempts to cancel the same order again return HTTP 409.
 
+## Interactive API documentation
+
+Swagger UI: **http://localhost:4200/swagger-ui/index.html** (or directly through the backend at `http://localhost:8080/swagger-ui/index.html`).
+The machine-readable OpenAPI 3 document for supported customer and admin routes is at
+**http://localhost:4200/v3/api-docs/cafeteria**.
+
+Use `POST /api/auth/signin` to get a JWT, choose **Authorize** in Swagger UI, and enter the token.
+The documented `POST /api/orders` endpoint also requires the `Idempotency-Key` header: use a unique value for each new checkout, retaining it only for retries of the same cart. Never use real account credentials in public screenshots or published recordings.
+
+The documented authentication and menu browse routes are public; customer/admin operations remain protected even though their API descriptions are public. Legacy file/upload and test routes are intentionally excluded from the focused `cafeteria` API group.
+
+## MySQL transaction tests
+
+The CI workflow runs a dedicated MySQL 8 job (`mysql-integration`) that tests two simultaneous buyers competing for one item, two simultaneous retries using the same idempotency key, and rollback when one item in a multi-item checkout is invalid. These tests use genuine InnoDB locks and Flyway migrations, rather than the faster H2 test database.
+
+To run locally, start a disposable MySQL 8 database named `cafeteria_it` with a dedicated test user, then set `RUN_MYSQL_IT=true`, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, and a test-only `APP_JWT_SECRET`. From the backend directory run:
+
+```bash
+mvn -B -Dtest=MySqlConcurrencyIT test
+```
+
+These tests create and change real database rows. **Never point them at a valuable or production database.**
+
 ## Verification
 
 - Backend: `cd myCafeteriaD/myCafeteria && ./mvnw test` (Java 11; access to Maven Central required).
