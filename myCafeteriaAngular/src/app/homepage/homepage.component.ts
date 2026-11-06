@@ -36,6 +36,7 @@ export class HomepageComponent implements OnInit {
   busy = false;
   registerOpen = false;
   adminEditorOpen = false;
+  editingFoodId: string | null = null;
   activeTab = 'menu';
   private checkoutKey: string | null = null;
 
@@ -158,13 +159,40 @@ export class HomepageComponent implements OnInit {
         if (status === 'CANCELLED') { this.loadMenu(); }
       }, e => this.fail(e));
   }
-  createFood(): void {
-    this.busy = true; this.error = '';
-    this.http.post(environment.apiUrl + '/menu', this.newFood, {headers: this.headers()})
-      .subscribe(() => {
-        this.busy = false; this.adminEditorOpen = false; this.success = 'Menu item added.';
-        this.newFood = {name:'',category:'Vegetarian',description:'',price:99,stock:10}; this.loadMenu();
-      }, e => this.fail(e));
+  startAddFood(): void {
+    this.editingFoodId = null;
+    this.newFood = {name:'',category:'Vegetarian',description:'',price:99,stock:10};
+    this.adminEditorOpen = true;
+    this.error = '';
+  }
+  editFood(item: MenuItem): void {
+    this.editingFoodId = item.id;
+    this.newFood = {
+      name: item.name, category: item.category, description: item.description || '',
+      price: item.price, stock: item.stock
+    };
+    this.adminEditorOpen = true;
+    this.error = '';
+  }
+  closeFoodEditor(): void {
+    this.adminEditorOpen = false;
+    this.editingFoodId = null;
+    this.error = '';
+  }
+  saveFood(): void {
+    if (!this.isAdmin || this.busy) { return; }
+    const editing = this.editingFoodId !== null;
+    const path = environment.apiUrl + '/menu' + (editing ? '/' + this.editingFoodId : '');
+    this.busy = true; this.error = ''; this.success = '';
+    const request = editing
+      ? this.http.put(path, this.newFood, {headers: this.headers()})
+      : this.http.post(path, this.newFood, {headers: this.headers()});
+    request.subscribe(() => {
+      this.busy = false;
+      this.closeFoodEditor();
+      this.success = editing ? 'Dish updated.' : 'Menu item added.';
+      this.loadMenu();
+    }, e => this.fail(e));
   }
   updateStock(item: MenuItem): void {
     this.busy = true; this.error = '';

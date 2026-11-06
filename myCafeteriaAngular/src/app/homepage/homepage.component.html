@@ -113,19 +113,28 @@
     </section>
 
     <section *ngIf="activeTab === 'manage' && isAdmin" class="orders-panel">
-      <div class="section-head"><div><div class="eyebrow dark">MANAGEMENT</div><h2>Menu & inventory</h2><p>Keep the kitchen ready for the next rush.</p></div><button class="primary-btn" (click)="adminEditorOpen=!adminEditorOpen">+ Add dish</button></div>
-      <form class="panel manage-form" *ngIf="adminEditorOpen" (ngSubmit)="createFood()">
-        <label>Dish name<input name="foodName" required [(ngModel)]="newFood.name"></label>
-        <label>Category<input name="foodCategory" required [(ngModel)]="newFood.category"></label>
-        <label>Description<input name="foodDescription" [(ngModel)]="newFood.description"></label>
-        <label>Price (₹)<input name="foodPrice" type="number" min="1" required [(ngModel)]="newFood.price"></label>
+      <div class="section-head"><div><div class="eyebrow dark">MANAGEMENT</div><h2>Menu &amp; inventory</h2><p>Keep the kitchen ready for the next rush.</p></div><button class="primary-btn" (click)="startAddFood()">+ Add dish</button></div>
+      <form class="panel manage-form" *ngIf="adminEditorOpen" (ngSubmit)="saveFood()">
+        <h3 class="form-heading">{{editingFoodId ? 'Edit dish' : 'Add a dish'}}</h3>
+        <label>Dish name<input name="foodName" required maxlength="120" [(ngModel)]="newFood.name"></label>
+        <label>Category<input name="foodCategory" required maxlength="60" [(ngModel)]="newFood.category"></label>
+        <label>Description<textarea name="foodDescription" maxlength="500" rows="2" [(ngModel)]="newFood.description"></textarea></label>
+        <label>Price (₹)<input name="foodPrice" type="number" min="1" max="100000" required [(ngModel)]="newFood.price"></label>
         <label>Available stock<input name="foodStock" type="number" min="0" required [(ngModel)]="newFood.stock"></label>
-        <button class="primary-btn" [disabled]="busy">Save dish</button>
+        <div class="form-actions">
+          <button class="primary-btn" type="submit" [disabled]="busy">{{editingFoodId ? 'Save changes' : 'Save dish'}}</button>
+          <button class="outline-btn" type="button" (click)="closeFoodEditor()">Cancel</button>
+        </div>
       </form>
       <div class="inventory-list">
-        <div class="panel inventory-row" *ngFor="let item of menu"><div><strong>{{item.name}}</strong><small>{{item.category}} · ₹{{item.price}}</small></div>
-          <div class="inventory-actions"><label>Stock <input type="number" min="0" [name]="'stock'+item.id" [(ngModel)]="editingStock[item.id]"></label>
-            <button class="outline-btn" [disabled]="busy" (click)="updateStock(item)">Save stock</button><button class="danger-btn" (click)="removeFood(item)" [disabled]="busy">Remove</button></div>
+        <div class="panel inventory-row" *ngFor="let item of menu">
+          <div><strong>{{item.name}}</strong><small>{{item.category}} · ₹{{item.price}}</small><small>{{item.description}}</small></div>
+          <div class="inventory-actions">
+            <label>Stock <input type="number" min="0" [attr.aria-label]="'Stock for ' + item.name" [name]="'stock'+item.id" [(ngModel)]="editingStock[item.id]"></label>
+            <button class="outline-btn" [disabled]="busy" (click)="updateStock(item)">Save stock</button>
+            <button class="outline-btn" [disabled]="busy" (click)="editFood(item)">Edit</button>
+            <button class="danger-btn" [disabled]="busy" (click)="removeFood(item)">Remove</button>
+          </div>
         </div>
       </div>
     </section>
