@@ -171,4 +171,43 @@ public class OrderIntegrationTest {
   } finally {pool.shutdownNow();}
  }
 
+
+ @Test public void dashboardRequiresAdminAndReportsFulfilledRevenue() throws Exception {
+  String buyer=token(UUID.randomUUID().toString().replace("-","").substring(0,12));
+  String admin=staffToken();
+  FoodEntity item=testFood(6);
+  String body="{\"items\":[{\"foodId\":\""+item.getId()+"\",\"quantity\":2}]}";
+  String response=mvc.perform(post("/api/orders").header("Authorization",bearer(buyer))
+      .header("Idempotency-Key",UUID.randomUUID().toString())
+      .contentType(MediaType.APPLICATION_JSON).content(body))
+      .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+  long orderId=json.readTree(response).path("id").asLong();
+  mvc.perform(get("/api/admin/overview")).andExpect(status().isUnauthorized());
+  mvc.perform(get("/api/admin/overview").header("Authorization",bearer(buyer)))
+      .andExpect(status().isForbidden());
+  mvc.perform(get("/api/admin/inventory/history").header("Authorization",bearer(buyer)))
+      .andExpect(status().isForbidden());
+  for(String stage:new String[]{"PREPARING","READY","COMPLETED"}) {
+   mvc.perform(patch("/api/orders/"+orderId+"/status").header("Authorization",bearer(admin))
+       .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\""+stage+"\"}"))
+       .andExpect(status().isOk());
+  }
+  String data=mvc.perform(get("/api/admin/overview?days=7")
+      .header("Authorization",bearer(admin))).andExpect(status().isOk())
+      .andExpect(jsonPath("$.completedOrders").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+      .andExpect(jsonPath("$.daily").isArray())
+      .andReturn().getResponse().getContentAsString();
+  com.fasterxml.jackson.databind.JsonNode stats=json.readTree(data);
+  assertEquals(7,stats.path("daily").size());
+  org.junit.jupiter.api.Assertions.assertTrue(stats.path("revenue").asDouble()>=80.0);
+  org.junit.jupiter.api.Assertions.assertTrue(stats.path("averagePrepMinutes").asDouble()>=0);
+  String audit=mvc.perform(get("/api/admin/inventory/history?foodId="+item.getId())
+      .header("Authorization",bearer(admin))).andExpect(status().isOk())
+      .andReturn().getResponse().getContentAsString();
+  com.fasterxml.jackson.databind.JsonNode movements=json.readTree(audit);
+  org.junit.jupiter.api.Assertions.assertTrue(movements.size()>=1);
+  assertEquals("ORDER_RESERVED",movements.get(0).path("reason").asText());
+  assertEquals(-2,movements.get(0).path("delta").asInt());
+  assertEquals(4,movements.get(0).path("quantityAfter").asInt());
+ }
 }
