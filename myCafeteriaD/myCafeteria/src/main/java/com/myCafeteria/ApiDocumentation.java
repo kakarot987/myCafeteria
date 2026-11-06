@@ -28,7 +28,7 @@ public class ApiDocumentation {
             .group("cafeteria")
             .pathsToMatch("/api/auth/signin", "/api/auth/signup",
                           "/api/menu", "/api/menu/**",
-                          "/api/orders", "/api/orders/**")
+                          "/api/orders", "/api/orders/**", "/api/admin/**")
             .build();
     }
 }
