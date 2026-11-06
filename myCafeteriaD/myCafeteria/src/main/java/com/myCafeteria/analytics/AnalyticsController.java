@@ -57,6 +57,7 @@ public class AnalyticsController {
         public double averagePrepMinutes;
         public Map<String,Long> statusCounts=new LinkedHashMap<>();
         public List<DailyReport> daily=new ArrayList<>();
+        public List<DailyReport> weekly=new ArrayList<>();
         public List<PopularDish> popularDishes=new ArrayList<>();
         public List<LowStock> lowStock=new ArrayList<>();
     }
@@ -128,6 +129,17 @@ public class AnalyticsController {
             .map(LowStock::new).sorted(Comparator.comparingInt((LowStock f)->f.stock).thenComparing(f->f.name))
             .collect(Collectors.toList());
         report.lowStockCount=report.lowStock.size();
+        // Weeks start on Monday (ISO-8601), including partial boundary weeks.
+        Map<LocalDate,DailyReport> weekly=new LinkedHashMap<>();
+        for(DailyReport day:report.daily){
+            LocalDate date=LocalDate.parse(day.date);
+            LocalDate monday=date.with(java.time.DayOfWeek.MONDAY);
+            DailyReport week=weekly.computeIfAbsent(monday,DailyReport::new);
+            week.revenue=week.revenue.add(day.revenue);
+            week.completedOrders+=day.completedOrders;
+            week.placedOrders+=day.placedOrders;
+        }
+        report.weekly.addAll(weekly.values());
         return report;
     }
 
