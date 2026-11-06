@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myCafeteria.foodMenu.FoodEntity;
 import com.myCafeteria.foodMenu.FoodRepository;
+import com.myCafeteria.inventory.InventoryAdjustmentRepository;
 import java.util.UUID;
 import com.myCafeteria.models.ERole;
 import com.myCafeteria.models.Role;
@@ -39,6 +40,7 @@ public class OrderIntegrationTest {
  @Autowired private RoleRepository roles;
  @Autowired private PasswordEncoder passwordEncoder;
  @Autowired private OrderRepository orders;
+ @Autowired private InventoryAdjustmentRepository inventory;
 
  private String token(String name) throws Exception {
   String user="customer"+name;
@@ -91,12 +93,15 @@ public class OrderIntegrationTest {
   String one=token(UUID.randomUUID().toString().replace("-","").substring(0,12));
   FoodEntity f=foods.findAll().stream().filter(x->x.getStock()>2).findFirst().get();
   int stock=f.getStock();
+  int auditsBefore=inventory.findTop100ByFoodIdOrderByCreatedAtDescIdDesc(f.getId()).size();
   String body="{\"items\":[{\"foodId\":\""+f.getId()+"\",\"quantity\":1},{\"foodId\":\"zz-unknown\",\"quantity\":1}]}";
   mvc.perform(post("/api/orders").header("Authorization",bearer(one))
     .header("Idempotency-Key",UUID.randomUUID().toString())
     .contentType(MediaType.APPLICATION_JSON).content(body))
     .andExpect(status().isBadRequest());
   assertEquals(stock,foods.findById(f.getId()).get().getStock());
+  assertEquals(auditsBefore,inventory.findTop100ByFoodIdOrderByCreatedAtDescIdDesc(f.getId()).size(),
+      "Rolled-back order must not leave an inventory audit event");
  }
  private String staffToken() throws Exception {
   String name="staff"+UUID.randomUUID().toString().replace("-","").substring(0,10);
