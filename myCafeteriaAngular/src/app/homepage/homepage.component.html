@@ -117,7 +117,7 @@
       <div *ngIf="loadingDashboard && !dashboard" class="loading-placeholder" role="status">Loading dashboard…</div>
       <ng-container *ngIf="dashboard as stats">
         <div class="metrics-grid">
-          <article class="metric-tile"><span>Completed sales</span><strong>₹{{stats.revenue | number:'1.0-2'}}</strong><small>Completed orders only · {{stats.range}}</small></article>
+          <article class="metric-tile"><span>Completed order value</span><strong>₹{{stats.revenue | number:'1.0-2'}}</strong><small>Completed orders only · {{stats.range}}</small></article>
           <article class="metric-tile"><span>Completed orders</span><strong>{{stats.completedOrders}}</strong><small>Orders fulfilled in the selected period</small></article>
           <article class="metric-tile"><span>Orders placed</span><strong>{{stats.totalOrders}}</strong><small>Includes pending and cancelled orders</small></article>
           <article class="metric-tile"><span>Avg. preparation</span><strong>{{stats.averagePrepMinutes | number:'1.0-1'}} min</strong><small>Preparing → ready, when timestamps exist</small></article>

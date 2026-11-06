@@ -72,6 +72,32 @@ The server reads price from the database, validates quantities and availability,
 
 Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders can be cancelled from `PLACED` or `PREPARING` by staff. Cancelled orders restore their stock once, within the same database transaction. Invalid transitions or attempts to cancel the same order again return HTTP 409.
 
+## Admin analytics, customer experience and inventory controls
+
+The **Dashboard** tab (administrator role) provides:
+- Completed-order value, completed and placed counts, average kitchen prep time, and status breakdown.
+- **Daily / ISO-week sales charts** and 7-/30-day reports, calculated server-side using UTC dates.
+- Top five dishes by quantity across completed orders, and a configurable low-stock threshold (default 5).
+- Shortcuts to the kitchen queue and inventory management.
+
+**Accounting note:** the `revenue` API field represents **gross completed-order value**, not reconciled payments or net revenue. The app still collects payment at pickup; no payment capture, refunds, tax accounting or cash reconciliation are implemented. Cancelled/unfulfilled orders are excluded. Older orders without completion timestamps are not included in completion-date reporting until they have valid timestamps.
+
+The **Kitchen orders** view now supports active/all/status filters, preparation elapsed time, guarded fulfillment transitions and 15-second refreshes while the view is visible. Customer orders show a visible **Placed → Preparing → Ready → Completed** timeline, pickup confirmation, and automatic status refresh. A successful checkout displays an order confirmation; loading, empty and network-error states are clearer.
+
+The customer's cart is now saved in local browser storage under an account-specific key. This is convenience persistence, **not** authoritative pricing or inventory: checkout always uses server prices and validates stock. Cart quantities survive page reload, unavailable menu items are discarded on refresh, and the idempotency key remains available for a retry after an uncertain network response. Stored carts are device-local and can be cleared from browser storage.
+
+The administrator **Inventory** view filters all, low-stock, sold-out and category items, and shows the last 100 inventory movements. Stock audits record administrator create/edit/stock/deactivation and checkout stock reservations/cancellations, with the operation's final stock quantity. Audit records are written transactionally alongside the inventory changes.
+
+### New administrator endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/admin/overview?days=7&lowStockThreshold=5` | Daily/weekly operational reports, popular dishes, stock alerts |
+| GET | `/api/admin/inventory/history` | Latest 100 inventory events |
+| GET | `/api/admin/inventory/history?foodId=ID` | Latest 100 events for a specific dish |
+
+Both endpoints require the administrator role. Their OpenAPI definitions appear in `/v3/api-docs/cafeteria`.
+
 ## Interactive API documentation
 
 Swagger UI: **http://localhost:4200/swagger-ui/index.html** (or directly through the backend at `http://localhost:8080/swagger-ui/index.html`).

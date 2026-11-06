@@ -110,7 +110,7 @@ test('customer-to-admin ordering and menu edit flow', async ({ browser }, testIn
     await staff.getByRole('button', { name: 'Dashboard' }).click();
     await expect(staff.getByRole('heading', { name: 'Kitchen at a glance' })).toBeVisible();
     await expect(staff.getByText(updatedName).first()).toBeVisible();
-    await expect(staff.getByText('Completed sales')).toBeVisible();
+    await expect(staff.getByText('Completed order value')).toBeVisible();
     await staff.screenshot({ path: testInfo.outputPath('admin-analytics.png'), fullPage: true });
 
     await staff.getByRole('button', { name: 'Inventory' }).click();

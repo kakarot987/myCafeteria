@@ -63,7 +63,7 @@ public class AnalyticsController {
     }
 
     @GetMapping("/overview")
-    @Operation(summary="Dashboard metrics",description="Completed-order revenue in UTC; cancelled and unfinished orders are excluded. Range is 7 or 30 days.")
+    @Operation(summary="Dashboard metrics",description="Gross completed-order value in UTC (not verified payments); cancelled and unfinished orders are excluded. Range is 7 or 30 days.")
     @Transactional(readOnly=true)
     public Report overview(@RequestParam(defaultValue="7") int days,
                            @RequestParam(defaultValue="5") int lowStockThreshold) {
