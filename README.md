@@ -70,7 +70,7 @@ curl -X POST http://localhost:8080/api/orders \
 
 The server reads price from the database, validates quantities and availability, uses database row locks to reserve stock, and commits the order and lines in a transaction. A duplicate key for the same user/cart returns the original order. Reusing the key with a different cart returns HTTP 409. Concurrent duplicate submissions may return a conflict and should be reconciled with order history. Invalid stock/price rolls back all changes.
 
-Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders can be cancelled from `PLACED` or `PREPARING` by staff. Invalid transitions return HTTP 409. Cancellation currently does not restock automatically.
+Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders can be cancelled from `PLACED` or `PREPARING` by staff. Cancelled orders restore their stock once, within the same database transaction. Invalid transitions or attempts to cancel the same order again return HTTP 409.
 
 ## Verification
 
