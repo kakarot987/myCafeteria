@@ -26,7 +26,7 @@ Public reads: `GET /api/menu`, food images and registration. Order placement nee
 | M2 authentication | Removed signup role escalation; private order ownership, staff/admin restrictions; token flow in UI | End-to-end auth tests, token revocation/refresh, stronger signup safeguards |
 | M3 ordering | Persisted order lines, stock locks, atomic totals and idempotency key | Harden concurrent retry behavior under real MySQL and validate production readiness |
 | M4 fulfillment | Status progression, dashboard, menu stock changes, history, atomic one-time cancellation stock restoration | Deeper admin editing UX and more operational reports |
-| M5 operations | Full-stack Docker Compose, environment configuration, H2 concurrency and rollback coverage | Versioned migrations, OpenAPI and MySQL stress tests |
+| M5 operations | Full-stack Docker Compose, Flyway V1/V2 migrations, H2 concurrency and rollback coverage | Verify historical MySQL upgrade path, OpenAPI and MySQL stress tests |
 | M6 release | Responsive frontend, architecture documentation and sample menu | Screenshots, recorded demo, verified fresh-clone release |
 
 ## Release checklist
@@ -39,5 +39,9 @@ Public reads: `GET /api/menu`, food images and registration. Order placement nee
 - [ ] Concurrent orders do not overdraw stock or create duplicate orders.
 - [ ] Failed multi-item checkout rolls back all reserved stock.
 - [ ] Admin can add/remove items, modify inventory and fulfill an order.
-- [ ] Production key rotation, backup/migration and security review are done.
+- [ ] Production key rotation, historic-database backup/migration validation and security review are done.
 - [ ] Screenshots and short demo are captured and linked in README.
+
+## Migration policy
+
+Flyway V1 reproduces the legacy schema for new databases; V2 adds inventory and ordering support. Spring JPA now validates rather than updates the schema. Existing databases require explicit reviewed baselining and a backup. See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md). Do not automatically baseline any unknown production schema.

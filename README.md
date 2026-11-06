@@ -2,7 +2,7 @@
 
 A cafeteria ordering application with an Angular customer experience, a Java Spring Boot REST API, and a MySQL database. The customer can browse the menu, manage a tray, place orders, and follow progress. Staff can move orders through fulfillment, while administrators manage menu stock.
 
-> **Status:** The original repository uses Angular 11, Spring Boot 2.4 and a legacy schema. This branch is a recovery and feature enhancement. Run the smoke tests and CI before production use. Legacy dependency upgrades and database migrations are tracked separately.
+> **Status:** The original repository uses Angular 11, Spring Boot 2.4 and a legacy schema. This branch is a recovery and feature enhancement. Run the smoke tests and CI before production use. Legacy dependency upgrades and historical-database upgrade validation are tracked separately.
 
 ## Quick start (one command for the full stack)
 
@@ -84,6 +84,6 @@ Order transition flow: `PLACED → PREPARING → READY → COMPLETED`; orders ca
 
 The historic Git history contains a previously committed `.env` and application configuration with hard-coded secrets. The working-tree version removes the committed `.env` and example values are placeholders, **but Git history remains**: rotate any previously used database credentials and JWT signing keys. Rewrite history with a coordinated migration if required.
 
-The existing Spring Boot version is end-of-life and the Angular toolchain is old. Plan upgrades before exposing the application publicly. JPA currently uses `ddl-auto=update` only for development compatibility; moving to explicit versioned migrations needs a tested migration from the historical database schema. Do not point this branch at a production database without a backup.
+The existing Spring Boot version is end-of-life and the Angular toolchain is old. Plan upgrades before exposing the application publicly. **Flyway now owns the database schema** with V1 and V2 migrations; Hibernate uses `ddl-auto=validate`. Fresh Docker installs run both migrations automatically. **Existing pre-Flyway databases require an explicit baseline and backup**: follow [the migration guide](docs/DATABASE_MIGRATIONS.md) before attempting any upgrade. Do not point this branch at a production database without a tested backup and schema review.
 
 See [architecture & release checklist](docs/ARCHITECTURE.md) and the GitHub Issues for remaining work.
