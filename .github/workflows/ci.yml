@@ -70,6 +70,31 @@ jobs:
           done
           docker compose -f myCafeteriaD/docker-compose.yml logs --no-color
           exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright browser testing dependencies
+        working-directory: e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Run customer and admin browser walkthroughs
+        working-directory: e2e
+        run: npm test
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4200
+          E2E_ADMIN_USER: admin
+          E2E_ADMIN_PASSWORD: replace-with-a-unique-admin-password-12-chars-minimum
+      - name: Archive UI screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cafeteria-browser-screenshots
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Shutdown
         if: always()
         working-directory: myCafeteriaD
