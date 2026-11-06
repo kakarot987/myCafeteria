@@ -106,7 +106,7 @@ public class OrderIntegrationTest {
   staff.setRoles(Collections.singleton(role));
   users.saveAndFlush(staff);
   return json.readTree(mvc.perform(post("/api/auth/signin").contentType(MediaType.APPLICATION_JSON)
-    .content("{\\"username\\":\\""+name+"\\",\\"password\\":\\"LongPassword123!\\"}"))
+    .content("{\"username\":\""+name+"\",\"password\":\"LongPassword123!\"}"))
     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("accessToken").asText();
  }
  private FoodEntity testFood(int stock) {
@@ -119,31 +119,31 @@ public class OrderIntegrationTest {
   String buyer=token(UUID.randomUUID().toString().replace("-","").substring(0,12));
   String admin=staffToken();
   FoodEntity food=testFood(8);
-  String body="{\\"items\\":[{\\"foodId\\":\\""+food.getId()+"\\",\\"quantity\\":3}]}";
+  String body="{\"items\":[{\"foodId\":\""+food.getId()+"\",\"quantity\":3}]}";
   String orderResponse=mvc.perform(post("/api/orders").header("Authorization",bearer(buyer))
     .header("Idempotency-Key",UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON).content(body))
     .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
   Long orderId=json.readTree(orderResponse).get("id").asLong();
   assertEquals(5,foods.findById(food.getId()).get().getStock());
   mvc.perform(patch("/api/orders/"+orderId+"/status").header("Authorization",bearer(buyer))
-    .contentType(MediaType.APPLICATION_JSON).content("{\\"status\\":\\"CANCELLED\\"}")).andExpect(status().isForbidden());
+    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CANCELLED\"}")).andExpect(status().isForbidden());
   mvc.perform(patch("/api/orders/"+orderId+"/status").header("Authorization",bearer(admin))
-    .contentType(MediaType.APPLICATION_JSON).content("{\\"status\\":\\"CANCELLED\\"}"))
+    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CANCELLED\"}"))
     .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELLED"));
   assertEquals(8,foods.findById(food.getId()).get().getStock());
   mvc.perform(patch("/api/orders/"+orderId+"/status").header("Authorization",bearer(admin))
-    .contentType(MediaType.APPLICATION_JSON).content("{\\"status\\":\\"CANCELLED\\"}"))
+    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CANCELLED\"}"))
     .andExpect(status().isConflict());
   assertEquals(8,foods.findById(food.getId()).get().getStock());
   mvc.perform(patch("/api/orders/"+orderId+"/status").header("Authorization",bearer(admin))
-    .contentType(MediaType.APPLICATION_JSON).content("{\\"status\\":\\"READY\\"}"))
+    .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"READY\"}"))
     .andExpect(status().isConflict());
  }
  @Test public void competingOrdersCannotOversellLastItem() throws Exception {
   final String buyerOne=token(UUID.randomUUID().toString().replace("-","").substring(0,12));
   final String buyerTwo=token(UUID.randomUUID().toString().replace("-","").substring(0,12));
   final FoodEntity item=testFood(1);
-  final String body="{\\"items\\":[{\\"foodId\\":\\""+item.getId()+"\\",\\"quantity\\":1}]}";
+  final String body="{\"items\":[{\"foodId\":\""+item.getId()+"\",\"quantity\":1}]}";
   ExecutorService pool=Executors.newFixedThreadPool(2);
   CountDownLatch go=new CountDownLatch(1);
   try {
