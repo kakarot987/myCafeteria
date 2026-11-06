@@ -19,7 +19,7 @@ public class MigrationIntegrationTest {
 
     @Test
     public void initializesVersionedSchemaAndInventoryColumns() throws Exception {
-        assertEquals("2", flyway.info().current().getVersion().toString());
+        assertEquals("3", flyway.info().current().getVersion().toString());
         try (Connection connection = dataSource.getConnection();
              Statement stmt = connection.createStatement()) {
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM food_menu WHERE stock IS NULL OR active IS NULL")) {
@@ -30,6 +30,12 @@ public class MigrationIntegrationTest {
                 assertTrue(rs.next());
             }
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM cafeteria_order_items")) {
+                assertTrue(rs.next());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM inventory_adjustments")) {
+                assertTrue(rs.next());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM cafeteria_orders WHERE started_at IS NOT NULL OR ready_at IS NOT NULL")) {
                 assertTrue(rs.next());
             }
         }
