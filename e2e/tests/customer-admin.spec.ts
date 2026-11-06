@@ -112,6 +112,11 @@ test('customer-to-admin ordering and menu edit flow', async ({ browser }, testIn
     await expect(staff.getByText(updatedName).first()).toBeVisible();
     await expect(staff.getByText('Completed order value')).toBeVisible();
     await staff.screenshot({ path: testInfo.outputPath('admin-analytics.png'), fullPage: true });
+    await staff.setViewportSize({ width: 390, height: 844 });
+    await expect(staff.getByRole('heading', { name: 'Kitchen at a glance' })).toBeVisible();
+    expect(await staff.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2)).toBeFalsy();
+    await staff.screenshot({ path: testInfo.outputPath('admin-mobile-analytics.png'), fullPage: true });
+    await staff.setViewportSize({ width: 1280, height: 720 });
 
     await staff.getByRole('button', { name: 'Inventory', exact: true }).click();
     await expect(staff.getByRole('heading', { name: 'Inventory movement history' })).toBeVisible();

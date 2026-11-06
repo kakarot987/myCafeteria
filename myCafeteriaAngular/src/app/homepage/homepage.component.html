@@ -190,7 +190,7 @@
       <div class="order-grid">
         <article class="order-card" *ngFor="let order of visibleOrders">
           <div class="order-top"><div><small>ORDER #{{order.id}}</small><h3>₹{{order.total}}</h3></div><span class="status">{{order.status}}</span></div>
-          <p class="muted">{{order.createdAt | date:'medium'}}</p>
+          <p class="muted">{{(order.createdAt + 'Z') | date:'medium'}}</p>
           <div class="order-timeline" aria-label="Fulfillment progress">
             <div class="timeline-step" *ngFor="let step of orderSteps(order)" [class.reached]="stepReached(order,step)" [class.cancelled]="step==='CANCELLED'">
               <span class="timeline-dot"></span><span>{{stepLabel(step)}}</span>
@@ -251,9 +251,9 @@
         <p *ngIf="!loadingHistory && !stockHistory.length" class="muted">No inventory movements recorded yet.</p>
         <div class="audit-scroll" *ngIf="stockHistory.length">
           <table class="audit-table">
-            <thead><tr><th>When (UTC)</th><th>Dish</th><th>Reason</th><th>Change</th><th>After</th></tr></thead>
+            <thead><tr><th>When (local)</th><th>Dish</th><th>Reason</th><th>Change</th><th>After</th></tr></thead>
             <tbody><tr *ngFor="let movement of stockHistory">
-              <td>{{movement.createdAt | date:'short'}}</td><td>{{movement.foodName}}</td>
+              <td>{{(movement.createdAt + 'Z') | date:'short'}}</td><td>{{movement.foodName}}</td>
               <td>{{movement.reason | titlecase}}</td>
               <td [class.negative]="movement.delta < 0">{{movement.delta > 0 ? '+' : ''}}{{movement.delta}}</td>
               <td>{{movement.quantityAfter}}</td>

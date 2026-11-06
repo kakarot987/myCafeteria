@@ -191,7 +191,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     this.http.get<Dashboard>(environment.apiUrl + '/admin/overview?days=' + this.reportDays +
       '&lowStockThreshold=' + this.lowStockThreshold, {headers:this.headers()})
       .subscribe(data => { this.dashboard=data; this.loadingDashboard=false; },
-        e => { this.loadingDashboard=false; if (!silent) { this.fail(e); } });
+        e => { this.loadingDashboard=false; if (!silent || e.status === 401) { this.fail(e); } });
   }
   loadHistory(): void {
     if (!this.isAdmin) { return; }
@@ -207,7 +207,22 @@ export class HomepageComponent implements OnInit, OnDestroy {
     return new HttpHeaders({ Authorization: 'Bearer ' + this.storage.getToken() });
   }
   private fail(err: any): void {
-    this.error = err && err.error && (err.error.message || err.error.error) || 'Unable to complete request. Please try again.';
+    if (err && err.status === 401 && this.user) {
+      // Treat an expired JWT as a signed-out session; retain only the account's
+      // separately persisted tray so it can be restored after another sign-in.
+      this.storage.signOut();
+      this.user = null;
+      this.orders = [];
+      this.dashboard = null;
+      this.cart = [];
+      this.cartRestoredFor = '';
+      this.checkoutKey = null;
+      this.activeTab = 'menu';
+      this.error = 'Your session has expired. Sign in again to continue.';
+    } else {
+      this.error = err && err.error && (err.error.message || err.error.error) ||
+        'Unable to complete the request. Check your connection and try again.';
+    }
     this.busy = false;
   }
   private restore(): void {
@@ -299,7 +314,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     this.http.get<CafeteriaOrder[]>(environment.apiUrl + path, {headers: this.headers()})
       .subscribe(data => {
         this.orders=data; this.loadingOrders=false; this.lastOrdersUpdated=new Date();
-      }, e => { this.loadingOrders=false; if(!silent){this.fail(e);} });
+      }, e => { this.loadingOrders=false; if(!silent || e.status === 401){this.fail(e);} });
   }
   nextStatus(status: string): string {
     return ({PLACED:'PREPARING', PREPARING:'READY', READY:'COMPLETED'} as {[key:string]:string})[status] || '';
