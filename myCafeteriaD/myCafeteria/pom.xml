@@ -19,6 +19,12 @@
 	</properties>
 
 	<dependencies>
+        <!-- The 1.x springdoc family supports the legacy Spring Boot 2.x application. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>1.6.15</version>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>

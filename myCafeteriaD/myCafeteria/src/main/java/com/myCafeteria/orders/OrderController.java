@@ -6,6 +6,12 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
 import com.myCafeteria.foodMenu.*;
 import com.myCafeteria.security.UserDetailsImpl;
 @RestController
+@Tag(name="Orders", description="Customer checkout, order history, and staff fulfillment")
+@SecurityRequirement(name="bearerAuth")
 @RequestMapping("/api/orders")
 public class OrderController {
  private final OrderRepository orders;
@@ -44,11 +52,19 @@ public class OrderController {
    items=order.getItems().stream().map(LineView::new).collect(Collectors.toList());
   }
  }
+ @Operation(summary="Place a customer order", description="Server-calculated prices and atomic inventory reservation. A retry with the same user, key, and cart returns the original order.")
+ @ApiResponses({
+  @ApiResponse(responseCode="201",description="Order created or idempotent replay"),
+  @ApiResponse(responseCode="400",description="Invalid cart, price, or stock"),
+  @ApiResponse(responseCode="401",description="Not signed in"),
+  @ApiResponse(responseCode="403",description="Customer role required"),
+  @ApiResponse(responseCode="409",description="Idempotency key conflict")
+ })
  @PostMapping
  @ResponseStatus(HttpStatus.CREATED)
  @Transactional
  @PreAuthorize("hasRole('USER')")
- public OrderView place(@AuthenticationPrincipal UserDetailsImpl user,@RequestHeader("Idempotency-Key") String key,@Valid @RequestBody CreateRequest request){
+ public OrderView place(@AuthenticationPrincipal UserDetailsImpl user,@Parameter(description="Unique key for one checkout attempt; re-use it only when retrying the exact same cart",required=true) @RequestHeader("Idempotency-Key") String key,@Valid @RequestBody CreateRequest request){
   if(key.trim().isEmpty()||key.length()>100)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid Idempotency-Key");
   Map<String,Integer> quantities=new TreeMap<>();
   for(LineRequest line:request.items){
@@ -77,10 +93,12 @@ public class OrderController {
   order.setTotal(total);
   return new OrderView(orders.saveAndFlush(order));
  }
+ @Operation(summary="Get the authenticated customer\u0027s order history")
  @GetMapping("/mine") @Transactional(readOnly=true)
  public List<OrderView> mine(@AuthenticationPrincipal UserDetailsImpl user){
   return orders.findByUserIdOrderByIdDesc(user.getId()).stream().map(OrderView::new).collect(Collectors.toList());
  }
+ @Operation(summary="Get an order by ID",description="Owners and staff only; returns 404 to non-owners")
  @GetMapping("/{id}") @Transactional(readOnly=true)
  public OrderView one(@PathVariable Long id,@AuthenticationPrincipal UserDetailsImpl user){
   CafeteriaOrder order=orders.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -88,8 +106,10 @@ public class OrderController {
   if(!order.getUserId().equals(user.getId())&&!staff)throw new ResponseStatusException(HttpStatus.NOT_FOUND);
   return new OrderView(order);
  }
+ @Operation(summary="List all orders for fulfillment",description="Staff and administrator only")
  @GetMapping @PreAuthorize("hasAnyRole('ADMIN','MODERATOR')") @Transactional(readOnly=true)
  public List<OrderView> all(){return orders.findAllByOrderByIdDesc().stream().map(OrderView::new).collect(Collectors.toList());}
+ @Operation(summary="Update fulfillment status",description="Staff only: PLACED→PREPARING→READY→COMPLETED. Staff may cancel PLACED/PREPARING and restore stock exactly once.")
  @PatchMapping("/{id}/status") @PreAuthorize("hasAnyRole('ADMIN','MODERATOR')") @Transactional
  public OrderView status(@PathVariable Long id,@Valid @RequestBody StatusRequest request){
   CafeteriaOrder order=orders.findForUpdate(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));

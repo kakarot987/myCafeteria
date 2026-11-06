@@ -61,6 +61,9 @@ jobs:
               python3 -c 'import json; a=json.load(open("/tmp/cafeteria-menu.json")); assert len(a)>0, "menu seed empty"'
               status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4200/api/orders/mine)
               test "$status" = "401"
+              curl --fail --silent http://localhost:4200/v3/api-docs/cafeteria > /tmp/cafeteria-openapi.json
+              python3 -c 'import json; d=json.load(open("/tmp/cafeteria-openapi.json")); assert "/api/orders" in d["paths"]; assert "/api/menu" in d["paths"]; assert "bearerAuth" in d["components"]["securitySchemes"]'
+              curl --fail --silent http://localhost:4200/swagger-ui/index.html | grep -qi 'swagger'
               exit 0
             fi
             sleep 5
