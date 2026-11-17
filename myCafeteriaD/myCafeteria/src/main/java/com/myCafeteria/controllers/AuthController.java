@@ -167,35 +167,11 @@ public class AuthController {
 							 signUpRequest.getMobileno(),
 							 date);
 
-		Set<String> strRoles = signUpRequest.getRole();
+		// Roles from public registration requests are untrusted; always assign ROLE_USER.
+		Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+				.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
 		Set<Role> roles = new HashSet<>();
-
-		if (strRoles == null) {
-			Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-					.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-			roles.add(userRole);
-		} else {
-			strRoles.forEach(role -> {
-				switch (role) {
-				case "admin":
-					Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(adminRole);
-
-					break;
-				case "mod":
-					Role modRole = roleRepository.findByName(ERole.ROLE_MODERATOR)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(modRole);
-
-					break;
-				default:
-					Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-							.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-					roles.add(userRole);
-				}
-			});
-		}
+		roles.add(userRole);
 
 		user.setRoles(roles);
 		userRepository.save(user);
@@ -285,7 +261,9 @@ public class AuthController {
 	  @GetMapping("/getFood/{id}")
 	  public ResponseEntity<byte[]> getFood(@PathVariable String id) {
 		  FoodEntity foodEntity = foodService.getFood(id);
-		  
+		  if (foodEntity == null) {
+			  return ResponseEntity.notFound().build();
+		  }
 		  return ResponseEntity.ok()
 				  .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + foodEntity.getName() + "\"")
 				  .body(foodEntity.getData());

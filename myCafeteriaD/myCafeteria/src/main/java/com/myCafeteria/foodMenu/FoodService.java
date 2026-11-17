@@ -19,16 +19,9 @@ public class FoodService {
 	public FoodEntity store(MultipartFile file, String foodBody) throws IOException{
 		 String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 		 		 
-		 FoodBody json = new FoodBody();
-		 System.out.print("Json data : " +json);
-		 try {
-			ObjectMapper objectMapper = new ObjectMapper();
-				json = objectMapper.readValue(foodBody, FoodBody.class);
-				 System.out.print("Json data after map: " +json);
-
-		 }catch (IOException err) {
-				System.out.printf("Error", err.toString());
-		}
+		 ObjectMapper objectMapper = new ObjectMapper();
+		 // Invalid JSON must fail the request; never create a partially populated food record.
+		 FoodBody json = objectMapper.readValue(foodBody, FoodBody.class);
 		 FoodEntity entityf = new FoodEntity(json.getFoodname(), json.getRates(), json.getTime(),json.getDescription(),json.getCategory() ,fileName
 				,file.getContentType() ,file.getBytes());
 		 return foodRepository.save(entityf);
@@ -39,7 +32,7 @@ public class FoodService {
 	}
 	
 	public FoodEntity getFood(String id) {
-		return foodRepository.findById(id).get();
+		return foodRepository.findById(id).orElse(null);
 	}
 	
 	/*

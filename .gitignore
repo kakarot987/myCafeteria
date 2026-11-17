@@ -1,0 +1,4 @@
+myCafeteriaD/.env
+myCafeteriaD/.m2/
+**/target/
+**/node_modules/
