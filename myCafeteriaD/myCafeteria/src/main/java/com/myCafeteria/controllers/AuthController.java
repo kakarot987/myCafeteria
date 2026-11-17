@@ -206,6 +206,10 @@ public class AuthController {
 			  message = "Uploaded the details seccessfully: ";
 			  return ResponseEntity.status(HttpStatus.OK).body(new FoodResponseMessage(message));
 		  }
+		  		  catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			  return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new FoodResponseMessage("Invalid food JSON payload"));
+		  }
 		  catch(Exception e) {
 			  message = "Could not upload the file";
 			  return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new FoodResponseMessage(message));
