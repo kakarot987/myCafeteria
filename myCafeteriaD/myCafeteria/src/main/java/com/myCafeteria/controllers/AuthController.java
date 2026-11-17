@@ -166,10 +166,14 @@ public class AuthController {
 	  public ResponseEntity<FoodResponseMessage> uploadFood(@RequestPart("file") MultipartFile file, @RequestParam("foodBody") String foodBody){
 		  String message = "";
 		  try {
-			  System.out.println("food Data here " + foodBody);
+			  // Never log user-submitted food details.
 			  foodService.store(file, foodBody);
 			  message = "Uploaded the details seccessfully: ";
 			  return ResponseEntity.status(HttpStatus.OK).body(new FoodResponseMessage(message));
+		  }
+		  catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+			  return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new FoodResponseMessage("Invalid food JSON payload"));
 		  }
 		  catch(Exception e) {
 			  message = "Could not upload the file";
@@ -227,7 +231,9 @@ public class AuthController {
 	  @GetMapping("/getFood/{id}")
 	  public ResponseEntity<byte[]> getFood(@PathVariable String id) {
 		  FoodEntity foodEntity = foodService.getFood(id);
-		  
+		  if (foodEntity == null) {
+			  return ResponseEntity.notFound().build();
+		  }
 		  return ResponseEntity.ok()
 				  .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + foodEntity.getName() + "\"")
 				  .body(foodEntity.getData());
