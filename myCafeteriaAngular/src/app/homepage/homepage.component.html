@@ -1,330 +1,267 @@
-<!--Header-->
-<header class="clearfix">
-    <div class="container">
-      <!--Hot Drinks Menu-->
-    <section class="card-containerVeg lfloat drinks">
-      <diV class="logo clearfix">
-        <img src="assets/Images/hot.png">
-        <h2 class="lfloat">Hot</h2>
-      </diV>
-      <div class="cardDemo clearfix">
-        <div class="lfloat">
-          <h3>Coffee</h3>    
-          <h6 class="lfloat">50₹</h6>
-        </div>
-        <img class="drinkImg" src="assets/Images/coffee.jpg">
-        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-        <div *ngIf = "role != 'ROLE_ADMIN'">
-          <select class="lfloat">
-            <option value="0">Mode of Payment</option>
-            <option value="1">Cash On Delivery</option>
-            <option value="2">Paytm / Google Pay</option>
-          </select>    
-          <button class="rfloat" (click)="addOrder('Coffee','NA')">Add</button>  
-        </div>
-        </div>
-      </div>
-      <div class="cardDemo clearfix">
-        <div class="lfloat">
-          <h3>Tea</h3>    
-          <h6 class="lfloat">20₹</h6>
-        </div>
-        <img class="drinkImg" src="assets/Images/tea.jpg">
-        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-        <div *ngIf = "role != 'ROLE_ADMIN'">
-          <select class="lfloat">
-            <option value="0">Mode of Payment</option>
-            <option value="1">Cash On Delivery</option>
-            <option value="2">Paytm / Google Pay</option>
-          </select>    
-          <button class="rfloat" (click)="addOrder('Tea','NA')">Add</button>  
-        </div>
-        </div>
-      </div>
-    </section>
-    <!--Cold Drinks Menu-->
-    <section class="card-containerVeg rfloat drinks">
-      <diV class="logo clearfix">
-        <img src="assets/Images/cold.png">
-        <h2 class="lfloat">Cold</h2>
-      </diV>
-      <div class="cardDemo clearfix">
-        <div class="lfloat">
-          <h3>Cold Drinks</h3>    
-          <h6 class="lfloat">50₹</h6>
-        </div>
-        <img class="drinkImg" src="assets/Images/softdrink.jpg">
-        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-        <div *ngIf = "role != 'ROLE_ADMIN'">
-          <select class="lfloat">
-            <option value="0">Mode of Payment</option>
-            <option value="1">Cash On Delivery</option>
-            <option value="2">Paytm / Google Pay</option>
-          </select>    
-          <button class="rfloat" (click)="addOrder('Cold Drinks','NA')">Add</button>  
-        </div>
-        </div>
-      </div>
-      <div class="cardDemo clearfix">
-        <div class="lfloat">
-          <h3>Lemonade</h3>    
-          <h6 class="lfloat">60₹</h6>
-        </div>
-        <img class="drinkImg" src="assets/Images/lemonade.jpg">
-        <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-        <div *ngIf = "role != 'ROLE_ADMIN'">
-          <select class="lfloat">
-            <option value="0">Mode of Payment</option>
-            <option value="1">Cash On Delivery</option>
-            <option value="2">Paytm / Google Pay</option>
-          </select>    
-          <button class="rfloat" (click)="addOrder('Lemonade','NA')">Add</button>  
-        </div>
-        </div>
-      </div>
-    </section>
-    <!--Icon and Order Screen-->
-    <div class="title">
-      <h1>myCafeteria</h1>
-      <div *ngIf = "isLoggedIn == true">
-        <div *ngIf = "role != 'ROLE_ADMIN'">
-        <h2>Your Orders</h2>
-        <table>
-          <tr>
-            <th>Name</th>
-            <th>Pick Up In:</th>
-          </tr>
-          <tr *ngFor = "let f of orderList">
-            <td>{{f.name}}</td>
-            <td>{{f.time}}</td>
-          </tr>
-        </table>
-      </div>
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="myCafeteria home"><span class="brand-icon">☕</span> my<span>Cafeteria</span></a>
+    <nav class="navigation" aria-label="Main navigation">
+      <button [class.active]="activeTab === 'menu'" (click)="activeTab='menu'">Explore menu</button>
+      <button *ngIf="isAdmin" [class.active]="activeTab === 'dashboard'" (click)="showDashboard()">Dashboard</button>
+      <button *ngIf="user" [class.active]="activeTab === 'orders'" (click)="showOrders()">
+        {{isStaff ? 'Manage orders' : 'My orders'}}
+      </button>
+      <button *ngIf="isAdmin" [class.active]="activeTab === 'manage'" (click)="showInventory()">Inventory</button>
+    </nav>
+    <div class="account">
+      <span *ngIf="user" class="hello">Hi, {{user.fullname || user.username}}</span>
+      <button *ngIf="user" class="outline-btn" (click)="logout()">Sign out</button>
+      <button *ngIf="!user" class="outline-btn" (click)="activeTab='account'">Sign in</button>
+      <button *ngIf="user && !isStaff" class="cart-chip" (click)="activeTab='menu'">🛒 {{count}}</button>
     </div>
-    </div>
-  </div>
-</header>
+  </header>
 
-<!--Main Body-->
-  <div class="container clearfix">
-    <!--FoodMenu Section-->
-  <section class="card-container clearfix lfloat">
-    <!--Section for Veg Food-->
-    <section class="card-containerVeg">
-      <div class="clearfix headling">
-        <img src="assets/Images/veg.png">
-        <h2>Veg</h2>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">FRESHLY MADE · EVERY DAY</div>
+        <h1>Good food.<br><em>Better breaks.</em></h1>
+        <p>Discover your next favorite meal. Fresh picks, quick checkout, and your order ready when you are.</p>
+        <button class="primary-btn" (click)="activeTab='menu'">Explore our menu <span aria-hidden="true">→</span></button>
+        <div class="hero-details"><span>✦ Made fresh</span><span>✦ Quick pickup</span><span>✦ Easy ordering</span></div>
       </div>
-      <div *ngFor="let file of foodInfo | async">
-        <div *ngIf="file.category == 'veg'" class="cardDemo clearfix">
-          <div class="lfloat">
-            <h3>{{file.foodname}}</h3>    
-            <h6 class="lfloat">{{file.rates}}₹</h6>
-          </div>
-          <img src="http://localhost:8080/api/auth/getFood/{{file.id}}">
-          <p>{{file.description}}</p>
-          <h6 class="rfloat">{{file.time}}</h6>
-          <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-            <div *ngIf = "role != 'ROLE_ADMIN'">
-              <select class="lfloat">
-                <option value="0">Mode of Payment</option>
-                <option value="1">Cash On Delivery</option>
-                <option value="2">Paytm / Google Pay</option>
-              </select>    
-              <button class="rfloat" (click)="addOrder(file.foodname,file.time)">Add</button>  
+      <div class="hero-photo" role="img" aria-label="Freshly prepared cafeteria food">
+        <div class="hero-sticker">Made with <span>♥</span><br>every day</div>
+      </div>
+    </section>
+
+    <div class="messages" aria-live="polite">
+      <p class="error" *ngIf="error">{{error}} <button (click)="error=''">Dismiss</button></p>
+      <p class="success" *ngIf="success">{{success}} <button (click)="success=''">Dismiss</button></p>
+    </div>
+
+    <section *ngIf="activeTab === 'menu'" class="content-grid">
+      <div class="menu-panel">
+        <div class="section-head"><div><div class="eyebrow dark">OUR KITCHEN</div><h2>What sounds good?</h2><p>Handpicked favorites for every craving.</p></div>
+          <label class="search"><span>⌕</span><input [(ngModel)]="search" placeholder="Search dishes..." aria-label="Search menu"></label>
+        </div>
+        <div class="filters" aria-label="Menu categories">
+          <button *ngFor="let cat of categories" (click)="category=cat" [class.selected]="category === cat">{{cat}}</button>
+        </div>
+        <div class="food-grid">
+          <article class="food-card" *ngFor="let item of filteredMenu">
+            <img [src]="image(item)" [alt]="item.name" loading="lazy">
+            <div class="food-content">
+              <div class="food-category">{{item.category}}</div>
+              <h3>{{item.name}}</h3>
+              <p>{{item.description || 'Prepared fresh by our kitchen.'}}</p>
+              <div class="card-bottom"><strong>₹{{item.price}}</strong>
+                <button [disabled]="!user || isStaff || item.stock < 1" (click)="add(item)" [attr.aria-label]="'Add ' + item.name + ' to cart'">
+                  {{item.stock < 1 ? 'Sold out' : !user ? 'Sign in to order' : isStaff ? 'Staff view' : '+ Add'}}
+                </button>
+              </div>
+              <div class="stock-hint" *ngIf="item.stock > 0 && item.stock < 6">Only {{item.stock}} left</div>
             </div>
-          </div>
+          </article>
         </div>
-      </div> 
-    </section>
-        <!--Section for Non-Veg Food-->
-    <section class="card-containerNonVeg">
-      <diV class="clearfix headling">
-        <img src="assets/Images/nv.png">     
-        <h2>Non-Veg</h2>
-      </diV>
-      <div *ngFor="let file of foodInfo | async">
-        <div *ngIf="file.category == 'nonveg'" class="cardDemo clearfix">
-          <div class="lfloat">
-            <h3>{{file.foodname}}</h3>    
-            <h6 class="lfloat">{{file.rates}}₹</h6>
-          </div>
-          <img src="http://localhost:8080/api/auth/getFood/{{file.id}}">
-          <p>{{file.description}}</p>
-          <h6 class="rfloat">{{file.time}}</h6>
-          <div class="paymentMode clearfix lfloat" *ngIf = "isLoggedIn == true">
-            <div *ngIf = "role != 'ROLE_ADMIN'">
-              <select class="lfloat">
-                <option value="0">Mode of Payment</option>
-                <option value="1">Cash On Delivery</option>
-                <option value="2">Paytm / Google Pay</option>
-              </select>    
-              <button class="rfloat" (click)="addOrder(file.foodname,file.time)">Add</button>  
-            </div> 
-          </div>
-        </div>
-      </div> 
-    </section>
-
-  </section>
-  <!--Login Section-->
-  <section class="login rfloat">
-    <!--Login Form-->
-    <div *ngIf = "isLoggedIn == false">
-      <img src="assets/Images/1.png">
-      <form class="row g-3" name = "form" (ngSubmit)="onSubmit()">
-        <div class="col-md-12">
-          <label for="validationName" class="form-label">Username</label>
-                    <input type="text" class="form-control" name="username" [(ngModel)]="form.username" placeholder="Enter Name">
-                    <label class="invalidError" id="error"></label>	
-        </div>
-        <div class="col-md-12">
-          <label for="validationName" class="form-label">Password</label>
-          <input type="text" name ="password" class="form-control" [(ngModel)]="form.password" placeholder="Enter Name">
-          <label class="invalidError" id="error"></label>	
-        </div>
-        <div class="col-md-12">
-          <button class="btn btn-primary" type="submit">Submit</button>
-        </div>
-        <div class="col-md-12">
-          <p>For Registration, Contact your HR Department.</p>
-          <p>Only Admin have a permission to add Users</p>
-        </div>
-      </form>
-    </div>
-    <!--If login is Successfull-->
-    <div *ngIf = "isLoggedIn == true">
-      <!--Admin Section-->
-      <div *ngIf = "role == 'ROLE_ADMIN'">
-        <img src="assets/Images/admin.png">
-        <div class="col-md-12">
-          <h1>Admin Board</h1>
-        </div>
-            <div class="col-md-12 loginDisplay">
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
-              Admin Controls
-            </button>
-         </div>
-       </div>
-       <!--User Section-->
-      <div *ngIf = "role != 'ROLE_ADMIN'">
-          <img src="assets/Images/1.png">
-          <div class="col-md-12">
-            <h1>User Information</h1>
-          </div>
-          <div class="col-md-12 loginDisplay">
-            <h3>Fullname</h3>
-            <h4>{{name}}</h4>
-            <h3>Organisation</h3>
-            <h4>{{orgname}}</h4>
-            <h3>Employee Number</h3>
-            <h4>{{empno}}</h4>
-            <h3>Contact Number</h3>
-            <h4>+91 {{mobile}}</h4>
-            <h3>E-mail Address</h3>
-            <h4>{{email}}</h4>
-            <h3>Registration Id</h3>
-            <h4>{{id}}</h4>
-          </div>
+        <div *ngIf="loadingMenu" class="loading-placeholder" role="status">Loading fresh dishes…</div>
+        <p class="empty" *ngIf="!filteredMenu.length && !loadingMenu">No dishes found. Try another category or search.</p>
       </div>
+
+      <aside class="side-panel">
+        <div class="panel cart-panel" *ngIf="user && !isStaff">
+          <div class="panel-heading"><h2>Your tray</h2><span class="count">{{count}} items</span></div>
+          <p class="muted" *ngIf="!cart.length">Your tray is empty. Add something delicious to get started!</p>
+          <div class="cart-line" *ngFor="let line of cart">
+            <div><strong>{{line.item.name}}</strong><small>₹{{line.item.price}} each</small></div>
+            <div class="quantity"><button (click)="changeQty(line,-1)" aria-label="Decrease quantity">−</button><span>{{line.quantity}}</span><button (click)="changeQty(line,1)" [disabled]="line.quantity>=line.item.stock" aria-label="Increase quantity">+</button></div>
+          </div>
+          <div class="cart-total" *ngIf="cart.length"><span>Subtotal</span><strong>₹{{total}}</strong></div>
+          <p class="error" *ngIf="unavailable">Some items are no longer available in your requested quantity.</p>
+          <button class="primary-btn full" [disabled]="!cart.length || busy || unavailable" (click)="checkout()">{{busy ? 'Placing order…' : 'Place order · ₹' + total}}</button>
+          <small class="muted" *ngIf="cart.length">Your tray is saved on this device for this account.</small>
+          <small class="muted">Payment is collected at pickup. No online payment is processed.</small>
+        </div>
+        <div class="panel" *ngIf="!user">
+          <div class="panel-heading"><h2>Welcome back</h2><span>👋</span></div>
+          <p class="muted">Sign in to place an order and track it from the kitchen.</p>
+          <form (ngSubmit)="login()">
+            <label>Username<input name="username" required [(ngModel)]="credentials.username" autocomplete="username" placeholder="Your username"></label>
+            <label>Password<input name="password" required type="password" [(ngModel)]="credentials.password" autocomplete="current-password" placeholder="Your password"></label>
+            <button class="primary-btn full" type="submit" [disabled]="busy">Sign in</button>
+          </form>
+          <button class="text-btn" (click)="registerOpen=!registerOpen">{{registerOpen ? 'Hide registration' : 'New here? Create an account'}}</button>
+          <form *ngIf="registerOpen" class="register" (ngSubmit)="register()">
+            <label>Username<input name="registerUsername" required minlength="3" [(ngModel)]="registration.username"></label>
+            <label>Email<input name="registerEmail" required type="email" [(ngModel)]="registration.email"></label>
+            <label>Full name<input name="registerName" [(ngModel)]="registration.fullname"></label>
+            <label>Password<input name="registerPassword" required minlength="6" type="password" [(ngModel)]="registration.password"></label>
+            <button class="primary-btn full" [disabled]="busy">Create account</button>
+          </form>
+        </div>
+        <div class="panel tip-panel"><div class="tip-emoji">✨</div><h3>Your break, made better.</h3><p>Skip the line, order ahead, and spend more time enjoying your food.</p></div>
+      </aside>
+    </section>
+
+    <section *ngIf="activeTab === 'account' && !user" class="account-redirect"><h2>Welcome to myCafeteria</h2><p>Sign in from the menu to place your first order.</p><button class="primary-btn" (click)="activeTab='menu'">Go to sign in</button></section>
+
+    <section *ngIf="activeTab === 'dashboard' && isAdmin" class="orders-panel dashboard-panel">
+      <div class="section-head">
+        <div><div class="eyebrow dark">BUSINESS OVERVIEW</div><h2>Kitchen at a glance</h2>
+          <p>Completed-order sales, kitchen timing, and inventory insights. Times use UTC.</p></div>
+        <div class="toolbar">
+          <label class="inline-label">Reporting period
+            <select [(ngModel)]="reportDays" (ngModelChange)="loadDashboard()" aria-label="Reporting period">
+              <option [ngValue]="7">Last 7 days</option><option [ngValue]="30">Last 30 days</option>
+            </select>
+          </label>
+          <button class="outline-btn" (click)="loadDashboard()">↻ Refresh</button>
+        </div>
       </div>
-  </section>
- 
-  </div>
-
-
-
-<!-- Modal -->
-<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-           <div class="modal-header">
-              <h1 class="modal-title">Admin Board</h1>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+      <div *ngIf="loadingDashboard && !dashboard" class="loading-placeholder" role="status">Loading dashboard…</div>
+      <ng-container *ngIf="dashboard as stats">
+        <div class="metrics-grid">
+          <article class="metric-tile"><span>Completed order value</span><strong>₹{{stats.revenue | number:'1.0-2'}}</strong><small>Completed orders only · {{stats.range}}</small></article>
+          <article class="metric-tile"><span>Completed orders</span><strong>{{stats.completedOrders}}</strong><small>Orders fulfilled in the selected period</small></article>
+          <article class="metric-tile"><span>Orders placed</span><strong>{{stats.totalOrders}}</strong><small>Includes pending and cancelled orders</small></article>
+          <article class="metric-tile"><span>Avg. preparation</span><strong>{{stats.averagePrepMinutes | number:'1.0-1'}} min</strong><small>Preparing → ready, when timestamps exist</small></article>
+        </div>
+        <div class="insights-grid">
+          <div class="panel">
+            <div class="panel-heading"><h3>{{reportGrouping === 'weekly' ? 'Weekly' : 'Daily'}} sales</h3><small>₹ · completed orders</small></div>
+            <div class="chart-switch" role="group" aria-label="Sales chart grouping">
+              <button type="button" [class.selected]="reportGrouping === 'daily'" (click)="reportGrouping='daily'">Daily</button>
+              <button type="button" [class.selected]="reportGrouping === 'weekly'" (click)="reportGrouping='weekly'">Weekly</button>
             </div>
-            <div class="modal-body">
-              <div class="row">
-                <div class="col-6">
-                <h2>Food Section</h2> 
-                <h3>Food Menu</h3>
-                  <div *ngFor="let file of foodInfo | async">
-                   <ul><li> <h4>{{file.foodname}}</h4></li></ul>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <h2>User Section</h2>
-                  <div *ngFor = "let u of jsonUser">
-                    <ul><li> <h4>{{u.fullname}}</h4></li></ul>
-                  </div>
-                  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
-                    Register New User                
-                   </button>
-                </div>
+            <div class="bar-chart" role="img" [attr.aria-label]="reportGrouping === 'weekly' ? 'Weekly completed order sales' : 'Daily completed order sales'">
+              <div *ngFor="let day of reportPoints" class="bar-column">
+                <strong class="bar-value" *ngIf="day.revenue">₹{{day.revenue}}</strong>
+                <div class="bar-track"><div class="bar-fill" [style.height.%]="revenueBar(day.revenue)"></div></div>
+                <small>{{reportGrouping === 'weekly' ? 'Wk ' : ''}}{{day.date | date:'d MMM'}}</small>
               </div>
             </div>
-    </div>
-  </div>
-</div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Order status mix</h3><small>Placed in period</small></div>
+            <div class="status-summary" *ngFor="let state of ['PLACED','PREPARING','READY','COMPLETED','CANCELLED']">
+              <span>{{stepLabel(state)}}</span><strong>{{stats.statusCounts[state] || 0}}</strong>
+            </div>
+            <button class="outline-btn full" (click)="showOrders()">Open fulfillment queue</button>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Popular dishes</h3><small>Completed orders</small></div>
+            <p class="muted" *ngIf="!stats.popularDishes.length">No completed orders yet for this period.</p>
+            <div class="rank-row" *ngFor="let dish of stats.popularDishes;let i=index">
+              <span class="rank-number">{{i+1}}</span><span class="rank-name">{{dish.name}}<small>{{dish.quantity}} sold</small></span>
+              <strong>₹{{dish.revenue}}</strong>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-heading"><h3>Stock alerts</h3><span class="alert-counter">{{stats.lowStockCount}} items</span></div>
+            <p class="muted" *ngIf="!stats.lowStock.length">No products below the stock threshold.</p>
+            <div class="rank-row" *ngFor="let item of stats.lowStock">
+              <span class="rank-name">{{item.name}}<small>{{item.category}}</small></span>
+              <span class="stock-badge" [class.out-of-stock]="item.stock === 0">{{item.stock === 0 ? 'Sold out' : item.stock + ' left'}}</span>
+            </div>
+            <button class="outline-btn full" (click)="showInventory()">Manage inventory</button>
+          </div>
+        </div>
+      </ng-container>
+    </section>
 
-<!-- Register New USer -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h1 class="modal-title" id="exampleModalLabel">Register User</h1>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
+    <section *ngIf="activeTab === 'orders'" class="orders-panel">
+      <div class="section-head">
+        <div><div class="eyebrow dark">ORDER TRACKER</div><h2>{{isStaff ? 'Kitchen orders' : 'My orders'}}</h2>
+          <p>Follow every order from the kitchen to pickup. <span *ngIf="lastOrdersUpdated">Updated {{lastOrdersUpdated | date:'shortTime'}} · auto-refreshes every 15s</span></p></div>
+        <div class="toolbar">
+          <label class="inline-label">Filter orders
+            <select [(ngModel)]="orderFilter" aria-label="Filter orders">
+              <option value="ACTIVE">Active</option><option value="ALL">All orders</option>
+              <option value="PLACED">Placed</option><option value="PREPARING">Preparing</option>
+              <option value="READY">Ready</option><option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </label>
+          <button class="outline-btn" (click)="loadOrders()">↻ Refresh</button>
+        </div>
       </div>
-      <div class="modal-body">
-        <div *ngIf = "isUserRegistered == false">
-        <form class="row g-3" name = "formUser" (ngSubmit)="onSubmitUser()">
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Username</label>
-                      <input type="text" class="form-control" name="username" [(ngModel)]="formUser.username" placeholder="Enter Name">
-                      <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">E-mail</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.email" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Fullname</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.fullname" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Organisation Name</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.orgname" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Employee Number</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.empno" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Mobile Number</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.mobileno" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <label for="validationName" class="form-label">Password</label>
-            <input type="text" name ="password" class="form-control" [(ngModel)]="formUser.password" placeholder="Enter Name">
-            <label class="invalidError" id="error"></label>	
-          </div>
-          <div class="col-md-12">
-            <button class="btn btn-primary" type="submit">Submit</button>
-          </div>
-        </form>
+      <div *ngIf="loadingOrders && !orders.length" class="loading-placeholder" role="status">Checking order status…</div>
+      <div class="confirmation-banner" *ngIf="checkoutConfirmation">
+        <strong>✓ Order #{{checkoutConfirmation}} confirmed!</strong>
+        <span>The kitchen received your order. Track its progress below.</span>
+        <button (click)="checkoutConfirmation=null" aria-label="Dismiss confirmation">×</button>
       </div>
-      <div *ngIf = "isUserRegistered == false">
-        <h1>{{userMessage}}</h1>
+      <div class="order-grid">
+        <article class="order-card" *ngFor="let order of visibleOrders">
+          <div class="order-top"><div><small>ORDER #{{order.id}}</small><h3>₹{{order.total}}</h3></div><span class="status">{{order.status}}</span></div>
+          <p class="muted">{{(order.createdAt + 'Z') | date:'medium'}}</p>
+          <div class="order-timeline" aria-label="Fulfillment progress">
+            <div class="timeline-step" *ngFor="let step of orderSteps(order)" [class.reached]="stepReached(order,step)" [class.cancelled]="step==='CANCELLED'">
+              <span class="timeline-dot"></span><span>{{stepLabel(step)}}</span>
+            </div>
+          </div>
+          <p *ngIf="isStaff && order.status === 'PREPARING'" class="prep-clock">⏱ {{prepElapsed(order)}}</p>
+          <p *ngIf="order.status === 'READY'" class="pickup-note">✓ Your order is ready for pickup.</p>
+          <div *ngFor="let line of order.items" class="order-line"><span>{{line.quantity}} × {{line.foodName}}</span><strong>₹{{line.lineTotal}}</strong></div>
+          <button class="primary-btn full" *ngIf="isStaff && nextStatus(order.status)" [disabled]="busy" (click)="advance(order)">Mark as {{nextStatus(order.status) | lowercase}}</button>
+          <button class="danger-btn cancel-btn" *ngIf="isStaff && (order.status === 'PLACED' || order.status === 'PREPARING')" [disabled]="busy" (click)="cancelOrder(order)">Cancel order &amp; restore stock</button>
+        </article>
       </div>
+      <p class="empty" *ngIf="!visibleOrders.length && !loadingOrders">{{orders.length ? 'No orders match this filter.' : 'No orders yet. Once you order, you’ll see their progress here.'}}</p>
+    </section>
+
+    <section *ngIf="activeTab === 'manage' && isAdmin" class="orders-panel">
+      <div class="section-head"><div><div class="eyebrow dark">MANAGEMENT</div><h2>Menu &amp; inventory</h2><p>Keep the kitchen ready for the next rush.</p></div><button class="primary-btn" (click)="startAddFood()">+ Add dish</button></div>
+      <form class="panel manage-form" *ngIf="adminEditorOpen" (ngSubmit)="saveFood()">
+        <h3 class="form-heading">{{editingFoodId ? 'Edit dish' : 'Add a dish'}}</h3>
+        <label>Dish name<input name="foodName" required maxlength="120" [(ngModel)]="newFood.name"></label>
+        <label>Category<input name="foodCategory" required maxlength="60" [(ngModel)]="newFood.category"></label>
+        <label>Description<textarea name="foodDescription" maxlength="500" rows="2" [(ngModel)]="newFood.description"></textarea></label>
+        <label>Price (₹)<input name="foodPrice" type="number" min="1" max="100000" required [(ngModel)]="newFood.price"></label>
+        <label>Available stock<input name="foodStock" type="number" min="0" required [(ngModel)]="newFood.stock"></label>
+        <div class="form-actions">
+          <button class="primary-btn" type="submit" [disabled]="busy">{{editingFoodId ? 'Save changes' : 'Save dish'}}</button>
+          <button class="outline-btn" type="button" (click)="closeFoodEditor()">Cancel</button>
+        </div>
+      </form>
+      <div class="toolbar inventory-toolbar">
+        <label class="inline-label">Show items
+          <select [(ngModel)]="inventoryFilter" aria-label="Inventory filter">
+            <option value="All">All items</option><option value="Low stock">Low stock (1–5)</option>
+            <option value="Sold out">Sold out</option>
+            <option *ngFor="let cat of categories.slice(1)" [value]="cat">{{cat}}</option>
+          </select>
+        </label>
+        <button class="outline-btn" (click)="loadHistory()">↻ Refresh history</button>
       </div>
-    </div>
-  </div>
+      <div class="inventory-list">
+        <div class="panel inventory-row" *ngFor="let item of filteredInventory">
+          <div><strong>{{item.name}}</strong>
+            <span *ngIf="item.stock === 0" class="stock-badge out-of-stock">Sold out</span>
+            <span *ngIf="item.stock > 0 && item.stock <= lowStockThreshold" class="stock-badge">Low stock</span>
+            <small>{{item.category}} · ₹{{item.price}}</small><small>{{item.description}}</small></div>
+          <div class="inventory-actions">
+            <label>Stock <input type="number" min="0" [attr.aria-label]="'Stock for ' + item.name" [name]="'stock'+item.id" [(ngModel)]="editingStock[item.id]"></label>
+            <button class="outline-btn" [disabled]="busy" (click)="updateStock(item)">Save stock</button>
+            <button class="outline-btn" [disabled]="busy" (click)="editFood(item)">Edit</button>
+            <button class="danger-btn" [disabled]="busy" (click)="removeFood(item)">Remove</button>
+          </div>
+        </div>
+      </div>
+      <p class="empty" *ngIf="!filteredInventory.length">No menu items match your filter.</p>
+      <div class="panel audit-panel">
+        <div class="panel-heading"><h3>Inventory movement history</h3><small>Latest 100 recorded adjustments</small></div>
+        <p *ngIf="loadingHistory" class="muted">Loading inventory changes…</p>
+        <p *ngIf="!loadingHistory && !stockHistory.length" class="muted">No inventory movements recorded yet.</p>
+        <div class="audit-scroll" *ngIf="stockHistory.length">
+          <table class="audit-table">
+            <thead><tr><th>When (local)</th><th>Dish</th><th>Reason</th><th>Change</th><th>After</th></tr></thead>
+            <tbody><tr *ngFor="let movement of stockHistory">
+              <td>{{(movement.createdAt + 'Z') | date:'short'}}</td><td>{{movement.foodName}}</td>
+              <td>{{movement.reason | titlecase}}</td>
+              <td [class.negative]="movement.delta < 0">{{movement.delta > 0 ? '+' : ''}}{{movement.delta}}</td>
+              <td>{{movement.quantityAfter}}</td>
+            </tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><span>☕ myCafeteria</span><p>Made for better breaks · Fresh food, happy people.</p></footer>
 </div>
