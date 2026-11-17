@@ -57,7 +57,6 @@ import com.myCafeteria.foodMenu.FoodResponseMessage;
 import com.myCafeteria.foodMenu.FoodService;
 import com.myCafeteria.user_pic.PicRepository;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -89,25 +88,20 @@ public class AuthController {
 	@Autowired
 	private UserDetailsServiceImpl userDetailsService;
 	
-	@PostMapping("/signin")
-	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-
-		Authentication authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-		SecurityContextHolder.getContext().setAuthentication(authentication);
-		String jwt = jwtUtils.generateJwtToken(authentication);
-		
-		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();		
-		List<String> roles = userDetails.getAuthorities().stream()
-				.map(item -> item.getAuthority())
-				.collect(Collectors.toList());
-		// Never return other registered users' details during authentication.
-		return ResponseEntity.ok(new JwtResponse(jwt,
-				userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(),
-				userDetails.getFullname(), userDetails.getOrgname(), userDetails.getEmpno(),
-				userDetails.getMobileno(), userDetails.getDate(), roles));
-	}
+    @PostMapping("/signin")
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+        UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
+        List<String> roles = principal.getAuthorities().stream()
+            .map(item -> item.getAuthority()).collect(Collectors.toList());
+        // Return only the authenticated principal, never a list of all users.
+        return ResponseEntity.ok(new JwtResponse(jwt, principal.getId(), principal.getUsername(),
+            principal.getEmail(), principal.getFullname(), principal.getOrgname(), principal.getEmpno(),
+            principal.getMobileno(), principal.getDate(), roles));
+    }
 
 	@PostMapping("/signup")
 	public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
@@ -125,8 +119,8 @@ public class AuthController {
 
 		Date date = new Date();
 		SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
-		System.out.println(formatter.format(date));
-		System.out.println(date);
+		
+		
 		// Create new user's account
 		User user = new User(signUpRequest.getUsername(), 
 							 signUpRequest.getEmail(),
@@ -137,11 +131,10 @@ public class AuthController {
 							 signUpRequest.getMobileno(),
 							 date);
 
-		// Roles from public registration requests are untrusted; always assign ROLE_USER.
-		Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-				.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-		Set<Role> roles = new HashSet<>();
-		roles.add(userRole);
+        // Never trust requested signup roles; public registration is customer-only.
+        Set<Role> roles = new HashSet<>();
+        roles.add(roleRepository.findByName(ERole.ROLE_USER)
+            .orElseGet(() -> roleRepository.save(new Role(ERole.ROLE_USER))));
 
 		user.setRoles(roles);
 		userRepository.save(user);
@@ -149,7 +142,8 @@ public class AuthController {
 		return ResponseEntity.ok(new MessageResponse("User registered successfully!" + "Registration Id is" + user.getId() + "Registration Date is " + user.getDate()));
 	}
 	
-	  @PostMapping("/upload")
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/upload")
 	  public ResponseEntity<ResponseMessage> uploadFile(@RequestParam("file") MultipartFile file) {
 	    String message = "";
 	    try {
@@ -164,19 +158,20 @@ public class AuthController {
 	  }
 	  
 	  // post method for food
-	  @PostMapping(value = "/uploadfood", consumes = {
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/uploadfood", consumes = {
 			  MediaType.APPLICATION_JSON_VALUE,
 			  MediaType.MULTIPART_FORM_DATA_VALUE
 	  })
 	  public ResponseEntity<FoodResponseMessage> uploadFood(@RequestPart("file") MultipartFile file, @RequestParam("foodBody") String foodBody){
 		  String message = "";
 		  try {
-			  System.out.println("food Data here " + foodBody);
+			  // Never log user-submitted food details.
 			  foodService.store(file, foodBody);
 			  message = "Uploaded the details seccessfully: ";
 			  return ResponseEntity.status(HttpStatus.OK).body(new FoodResponseMessage(message));
 		  }
-		  		  catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+		  catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 			  return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 					.body(new FoodResponseMessage("Invalid food JSON payload"));
 		  }
@@ -200,7 +195,7 @@ public class AuthController {
 			  			foodEntity.getName(),
 			  			fileDownloadUri,
 			  			foodEntity.getType(),
-			  			foodEntity.getData().length,
+			  			foodEntity.getData() == null ? 0 : foodEntity.getData().length,
 			  			foodEntity.getFoodname(),
 			  			foodEntity.getTime(),
 			  			foodEntity.getDescription(),
@@ -212,7 +207,8 @@ public class AuthController {
 		  return ResponseEntity.status(HttpStatus.OK).body(food);
 	  }
 	  
-	  @GetMapping("/files")
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/files")
 	  public ResponseEntity<List<ResponseFile>> getListFiles() {
 	    List<ResponseFile> files = storageService.getAllFiles().map(dbFile -> {
 	      String fileDownloadUri = ServletUriComponentsBuilder
@@ -243,7 +239,8 @@ public class AuthController {
 				  .body(foodEntity.getData());
 	  }
 
-	  @GetMapping("/files/{id}")
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/files/{id}")
 	  public ResponseEntity<byte[]> getFile(@PathVariable String id) {
 	    FileDB fileDB = storageService.getFile(id);
 
@@ -252,7 +249,8 @@ public class AuthController {
 	        .body(fileDB.getData());
 	  }
 	  
-	  @PostMapping("/userpic")
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/userpic")
 	  public @ResponseBody PicEntity postPic(@RequestParam ("picid") String picId, @RequestParam ("userId") Long userid){
 		  PicEntity picEntity = new PicEntity();
 		  picEntity.setId(userid);
@@ -261,7 +259,8 @@ public class AuthController {
 		  return new PicEntity();
 	  }
 	  
-	  @GetMapping("/getuserpic")
+	  @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/getuserpic")
 	  public @ResponseBody Iterable<PicEntity> getPic(){
 		  return picRepository.findAll();
 	  }

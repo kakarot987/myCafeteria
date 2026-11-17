@@ -1,7 +1,15 @@
-# Security and local setup
+# Security merge-resolution notes
 
-Public signup no longer accepts caller-assigned moderator/admin privileges. Protected endpoints require a valid JWT; role provisioning must happen in trusted server-side administration. Food JSON parsing now rejects malformed input rather than saving incomplete records; missing food IDs return 404.
+The November 2026 security PR was reconciled with a newer `main` branch that already introduced customer ordering, Flyway schema migrations, scoped CORS, role-protected legacy uploads, a Java 11 multi-stage build, and full-stack CI.
 
-Copy `myCafeteriaD/.env.example` to `myCafeteriaD/.env`, replace the placeholders with unique strong values, then run `docker compose --env-file .env -f docker-compose.yml config` from inside `myCafeteriaD/`. Compose binds the application to loopback and does not expose MySQL publicly. Do not deploy on the public internet without updating this legacy application's dependencies and access controls.
+The merge **keeps the newer configuration and application behavior**. Do not restore the older MySQL 5.7 / Java 8 / Hibernate `ddl-auto=update` Compose configuration from the original feature branch.
 
-A tracked `.env` file had previously contained a database password. Its tracked contents are neutralized, but original secrets remain in Git history; rotate all reused credentials. Do not mistake changing a tracked placeholder for revoking an existing credential. CI and local startup still need verification.
+The remaining fixes carried forward here are:
+- Reject malformed uploaded food JSON with HTTP 400, without saving a partial food record.
+- Return HTTP 404 for a missing legacy food image ID.
+- Regression tests for customer-only signup, malformed JSON, and nonexistent food.
+- Avoid logging raw uploaded food JSON.
+
+For startup, follow the root [README](README.md), copy `myCafeteriaD/.env.example` into the ignored `myCafeteriaD/.env`, and provide fresh local credentials.
+
+**Security note:** Removing plaintext values from the current tree does not revoke secrets exposed in old Git commits. Rotate any previously used secrets. CI and local deployments should be checked on the merged commit before making production-readiness claims.

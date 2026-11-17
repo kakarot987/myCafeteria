@@ -1,32 +1,51 @@
 services:
   mysqldb:
-    image: mysql:5.7
+    image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQLDB_ROOT_PASSWORD:?Set MYSQLDB_ROOT_PASSWORD in .env}
-      MYSQL_DATABASE: ${MYSQLDB_DATABASE:-bezkoder_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQLDB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQLDB_DATABASE:-mycafeteria}
+      MYSQL_USER: ${MYSQLDB_USER:-cafeteria}
+      MYSQL_PASSWORD: ${MYSQLDB_PASSWORD}
+    ports:
+      - "${MYSQLDB_LOCAL_PORT:-3306}:3306"
     volumes:
       - db:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 15
+
   app:
+    build: ./myCafeteria
+    restart: on-failure
     depends_on:
       mysqldb:
         condition: service_healthy
-    build: ./myCafeteria
-    restart: on-failure
-    ports:
-      - "127.0.0.1:${SPRING_LOCAL_PORT:-6868}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/${MYSQLDB_DATABASE:-bezkoder_db}?useSSL=false
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQLDB_ROOT_PASSWORD:?Set MYSQLDB_ROOT_PASSWORD in .env}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-    stdin_open: true
-    tty: true
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysqldb:3306/${MYSQLDB_DATABASE:-mycafeteria}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      SPRING_DATASOURCE_USERNAME: ${MYSQLDB_USER:-cafeteria}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQLDB_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_JWT_EXPIRATION_MS: ${APP_JWT_EXPIRATION_MS:-86400000}
+      APP_BOOTSTRAP_ADMIN_USERNAME: ${APP_BOOTSTRAP_ADMIN_USERNAME:-}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-}
+      APP_BOOTSTRAP_ADMIN_EMAIL: ${APP_BOOTSTRAP_ADMIN_EMAIL:-admin@example.test}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:4200}
+      APP_FLYWAY_BASELINE_ON_MIGRATE: ${APP_FLYWAY_BASELINE_ON_MIGRATE:-false}
+    ports:
+      - "${SPRING_LOCAL_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ../myCafeteriaAngular
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_LOCAL_PORT:-4200}:80"
+
 volumes:
   db:

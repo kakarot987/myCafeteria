@@ -20,7 +20,7 @@ public class FoodService {
 		 String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 		 		 
 		 ObjectMapper objectMapper = new ObjectMapper();
-		 // Invalid JSON must fail the request; never create a partially populated food record.
+		 // Reject malformed JSON before saving the entity.
 		 FoodBody json = objectMapper.readValue(foodBody, FoodBody.class);
 		 FoodEntity entityf = new FoodEntity(json.getFoodname(), json.getRates(), json.getTime(),json.getDescription(),json.getCategory() ,fileName
 				,file.getContentType() ,file.getBytes());
