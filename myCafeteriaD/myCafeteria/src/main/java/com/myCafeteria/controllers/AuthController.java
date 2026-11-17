@@ -102,41 +102,11 @@ public class AuthController {
 		List<String> roles = userDetails.getAuthorities().stream()
 				.map(item -> item.getAuthority())
 				.collect(Collectors.toList());
-		List<JwtResponse> users = userDetailsService.getUser().map(user ->{
-			return new JwtResponse(jwt,
-					user.getId(),
-					user.getUsername(),
-					user.getEmail(),
-					user.getFullname(),
-					user.getOrgname(),
-					user.getEmpno(),
-					user.getMobileno(),
-					user.getDate(),
-					 roles);
-		}).collect(Collectors.toList());
-		System.out.print(roles);
-		Iterator<String> iterator  = roles.iterator();
-		while(iterator.hasNext()) {
-		    String element = iterator.next();
-			if(element == "ROLE_ADMIN") {
-			System.out.print("Admin");
-			return ResponseEntity.status(HttpStatus.OK).body(users);
-			}
-			else if(element == "ROLE_USER")
-			{
-				return ResponseEntity.ok(new JwtResponse(jwt, 
-						 userDetails.getId(), 
-						 userDetails.getUsername(), 
-						 userDetails.getEmail(), 
-						 userDetails.getFullname(),
-						 userDetails.getOrgname(),
-						 userDetails.getEmpno(),
-						 userDetails.getMobileno(),
-						 userDetails.getDate(),
-						 roles));	
-			}
-			}
-		return null;
+		// Never return other registered users' details during authentication.
+		return ResponseEntity.ok(new JwtResponse(jwt,
+				userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(),
+				userDetails.getFullname(), userDetails.getOrgname(), userDetails.getEmpno(),
+				userDetails.getMobileno(), userDetails.getDate(), roles));
 	}
 
 	@PostMapping("/signup")
